@@ -1,5 +1,7 @@
 import pickle
 import re
+import json
+from tqdm import tqdm
 from typing import List, Tuple, Set
 
 def load_rules_tokens(rules_file: str, tokens_file: str) -> Tuple[List, List]:
@@ -22,6 +24,25 @@ class Tokenizer:
             re.compile(r'(?<!\S)' + re.escape(rule_str) + r'(?!\S)') 
             for rule_str in self.rule_strings_
         ]
+    
+    # For the newer version of bpe impl
+    @classmethod
+    def load(cls, filepath: str, ukn_token: str = '<ukn>') -> "Tokenizer":
+        """Loads the tokenizer using the new JSON format."""
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        # Extract rules and alphabet from the JSON saved by the trainer
+        rules = data.get('rules', [])
+        tokens = data.get('tokens', [])
+        ukn_token_ = data.get('ukn_token', [])
+        
+        ukn_token = ukn_token_ if ukn_token_ else ukn_token
+        
+        assert rules, 'No rules found in json file'
+        assert tokens, 'No tokens found in json file'
+        
+        return cls(rules=rules, tokens=tokens, ukn_token=ukn_token)
 
     def split_to_words_sparse(self, texts: List[str]) -> List[List[str]]:
         valid_chars = self.valid_chars_

@@ -317,7 +317,7 @@ class BPETokenizer:
             'word_break': self.word_break,
             'ukn_token':  self.ukn_token,
             'rules':      self.rules,          # List[Tuple] → List[List] in JSON
-            'tokens':     list(self.tokens),   # Set → List for JSON
+            'tokens':     sorted(self.tokens), # Stable output across runs
         }
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

@@ -121,10 +121,12 @@ collections of unique words, but process startup has overhead.
 
 ## Train from the command line
 
-The training script is the primary way to train the model. It streams the
-corpus directly from disk and tokenizes examples on demand, so RAM use does not
-grow with the number of rows. Defaults point to the included corpus and
-tokenizer artifacts:
+The training script reads indexed records from disk and tokenizes examples on
+demand. A first scan caches 8-byte record offsets in `.lstm-index/` beside the
+corpus (override with `--index-dir`). Training holds a compact permutation of
+8 bytes per training row in RAM: about 176 MB for 22 million training rows,
+plus model, tokenizer, batch and worker memory. Defaults point to the included
+corpus and tokenizer artifacts:
 
 ```bash
 python scripts/train.py
@@ -155,21 +157,46 @@ python scripts/train.py --checkpoint artifacts/checkpoints/experiment-01.pth
 
 The script:
 
-1. Reads TSV/TXT rows or CSV files with `en` and `fr` columns lazily.
-2. Assigns every pair to train, validation, or test with a stable hash, without
-   building an in-memory index.
-3. Uses a bounded shuffle buffer and tokenizes each batch on demand.
+1. Indexes valid TSV/TXT or `en`/`fr` CSV records, including multiline CSV fields.
+2. Assigns pairs to stable train/validation/test partitions before sampling.
+3. Samples globally without replacement; workers read disjoint assignments.
 4. Trains with validation, teacher-forcing decay, gradient clipping, and early
    stopping.
-5. Saves progress snapshots periodically and saves each improved self-contained
-   checkpoint.
+5. Saves resumable `.latest` checkpoints periodically and after each validation
+   interval, and separate best-model checkpoints for inference.
 6. Writes the epoch history beside the checkpoint as JSON.
-7. Reports BLEU and chrF on held-out examples.
+7. Uses fixed seeded samples across the validation/test partitions, and reports
+   BLEU and chrF on held-out examples.
 
-By default, one epoch consumes the complete training partition. On a 22-million
-row dataset, start with one epoch and increase only after measuring runtime.
-`--steps-per-epoch` is intended for smoke tests and debugging, not normal
-training.
+By default, one interval consumes the complete training partition. With
+`--steps-per-epoch 4000`, validation happens after at most 4,000 batches and the
+next interval continues with unused rows. An interval also ends at the end of
+a dataset pass, so its final batch/interval may be shorter. Only then is a new
+permutation created. `--epochs` counts validation intervals; `--patience` counts
+validation checks without improvement. Teacher-forcing decay follows fractional
+dataset passes, independently of validation frequency. `--shuffle-buffer` is
+retained as a deprecated no-op for the CLI; the legacy standalone iterable
+dataset remains available for callers needing sequential buffered streaming.
+
+```bash
+python scripts/train.py --steps-per-epoch 4000 --epochs 20
+python scripts/train.py --steps-per-epoch 4000 --epochs 40 \
+  --resume artifacts/checkpoints/model-v1.latest.pth
+```
+
+On resume, keep the original data, split seed/fractions, batch size, training
+settings and interval/validation limits. `--epochs` is the total target, not the
+number of additional intervals. The checkpoint supplies model/tokenizer state,
+optimizer state, random-generator states, dataset pass and committed cursor.
+Prefetched rows are not counted as trained. Regenerating the permutation on
+resume requires the same Python shuffle implementation for identical ordering;
+bitwise model reproducibility also depends on the device/software environment.
+Old inference-only checkpoints cannot resume training.
+
+Index files are reused while the source path, size, timestamps and partition
+settings match. Keep the source unchanged during training. The corpus itself is
+never deleted or rewritten. Random-read throughput depends on storage; this
+implementation does not materialize temporary sample files or pre-tokenize data.
 
 Checkpoint files and metrics are ignored by Git because they are generated
 artifacts and can become large.

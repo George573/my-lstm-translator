@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict
 import json
+import random
 from pathlib import Path
 import sys
 import time
@@ -16,13 +17,12 @@ from lstm_translator import (
     BPETokenizer,
     Seq2Seq,
     Seq2SeqConfig,
-    StreamingTranslationDataset,
+    IndexedTranslationDataset,
     TrainingConfig,
     Translator,
     Vocabulary,
-    iter_parallel_rows,
-    parallel_partition,
     save_checkpoint,
+    load_checkpoint,
     train_streaming_model,
     translation_scores,
 )
@@ -60,13 +60,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--test-fraction", type=fraction, default=0.01)
     parser.add_argument("--evaluation-size", type=non_negative_int, default=100)
     parser.add_argument("--data-workers", type=non_negative_int, default=0)
-    parser.add_argument("--shuffle-buffer", type=positive_int, default=10_000)
+    parser.add_argument("--shuffle-buffer", type=positive_int, default=10_000,
+                        help="deprecated; indexed training uses a global permutation")
+    parser.add_argument("--index-dir", type=Path, help="record-index cache directory")
+    parser.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
     parser.add_argument("--validation-steps", type=positive_int, default=1_000)
     parser.add_argument(
         "--steps-per-epoch",
         type=non_negative_int,
         default=0,
-        help="training batches per epoch; 0 consumes the complete stream",
+        help="batches per validation interval; 0 consumes a full dataset pass",
     )
     parser.add_argument("--checkpoint-interval", type=positive_int, default=10_000)
     parser.add_argument("--log-interval", type=positive_int, default=100)
@@ -81,14 +84,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     training = parser.add_argument_group("training")
-    training.add_argument("--epochs", type=positive_int, default=1)
+    training.add_argument("--epochs", type=positive_int, default=1,
+                          help="total validation intervals, including completed intervals on resume")
     training.add_argument("--batch-size", type=positive_int, default=32)
     training.add_argument("--learning-rate", type=positive_float, default=1e-3)
     training.add_argument("--validation-fraction", type=fraction, default=0.01)
     training.add_argument("--teacher-forcing-start", type=probability, default=1.0)
     training.add_argument("--teacher-forcing-end", type=probability, default=0.1)
     training.add_argument("--teacher-forcing-decay-epochs", type=positive_int, default=25)
-    training.add_argument("--patience", type=positive_int, default=5)
+    training.add_argument("--patience", type=positive_int, default=5,
+                          help="validation checks without improvement before stopping")
     training.add_argument("--min-delta", type=non_negative_float, default=0.01)
     training.add_argument("--gradient-clip", type=positive_float, default=1.0)
     training.add_argument("--seed", type=int, default=42)
@@ -111,13 +116,21 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         device = resolve_device(args.device)
-        _require_files(args.data, args.source_tokenizer, args.target_tokenizer)
+        _require_files(args.data)
         print(f"Device: {device}")
-        print(f"Streaming corpus from {args.data}")
-        source_tokenizer = BPETokenizer.load(args.source_tokenizer)
-        target_tokenizer = BPETokenizer.load(args.target_tokenizer)
-        source_vocabulary = Vocabulary(source_tokenizer.tokens)
-        target_vocabulary = Vocabulary(target_tokenizer.tokens)
+        print(f"Indexing corpus (or reusing cached offsets) from {args.data}")
+        restored = load_checkpoint(args.resume, "cpu") if args.resume else None
+        if restored is not None:
+            if restored.training_state is None:
+                raise ValueError("checkpoint has no resumable training state; use a new .latest checkpoint")
+            source_tokenizer, target_tokenizer = restored.source_tokenizer, restored.target_tokenizer
+            source_vocabulary, target_vocabulary = restored.source_vocabulary, restored.target_vocabulary
+        else:
+            _require_files(args.source_tokenizer, args.target_tokenizer)
+            source_tokenizer = BPETokenizer.load(args.source_tokenizer)
+            target_tokenizer = BPETokenizer.load(args.target_tokenizer)
+            source_vocabulary = Vocabulary(source_tokenizer.tokens)
+            target_vocabulary = Vocabulary(target_tokenizer.tokens)
         dataset_arguments = {
             "path": args.data,
             "source_tokenizer": source_tokenizer,
@@ -127,12 +140,12 @@ def main(argv: list[str] | None = None) -> int:
             "validation_fraction": args.validation_fraction,
             "test_fraction": args.test_fraction,
             "seed": args.seed,
-            "shuffle_buffer_size": args.shuffle_buffer,
+            "index_dir": args.index_dir,
         }
-        training_data = StreamingTranslationDataset(
+        training_data = IndexedTranslationDataset(
             **dataset_arguments, partition="train"
         )
-        validation_data = StreamingTranslationDataset(
+        validation_data = IndexedTranslationDataset(
             **dataset_arguments, partition="validation"
         )
         model_config = Seq2SeqConfig(
@@ -156,9 +169,11 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             show_progress=args.show_progress,
         )
-        model = Seq2Seq(
+        torch.manual_seed(args.seed)
+        model = restored.model.to(device) if restored else Seq2Seq(
             len(source_vocabulary), len(target_vocabulary), model_config
         ).to(device)
+        model_config = model.config
         print(f"Parameters: {sum(parameter.numel() for parameter in model.parameters()):,}")
 
         started_at = time.monotonic()
@@ -184,7 +199,8 @@ def main(argv: list[str] | None = None) -> int:
             f"{args.checkpoint.stem}.latest{args.checkpoint.suffix}"
         )
 
-        def save_progress(current_model, step) -> None:
+        def save_progress(current_model, state) -> None:
+            step = state["global_step"]
             save_checkpoint(
                 latest_checkpoint,
                 current_model,
@@ -198,12 +214,13 @@ def main(argv: list[str] | None = None) -> int:
                     "model_config": asdict(model_config),
                     "training_config": asdict(training_config),
                 },
+                training_state=state,
             )
             print(f"  Saved progress checkpoint at step {step:,}")
 
         def print_epoch(metrics) -> None:
             print(
-                f"Epoch {metrics.epoch:03d}/{training_config.epochs}: "
+                f"Interval {metrics.epoch:03d}/{training_config.epochs}: "
                 f"train={metrics.train_loss:.4f}, "
                 f"validation={metrics.validation_loss:.4f}, "
                 f"teacher_forcing={metrics.teacher_forcing_ratio:.3f}"
@@ -211,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
 
         def print_progress(epoch, step, average_loss) -> None:
             print(
-                f"Epoch {epoch:03d} step {step:,}: "
+                f"Interval {epoch:03d} step {step:,}: "
                 f"train={average_loss:.4f}"
             )
 
@@ -225,11 +242,20 @@ def main(argv: list[str] | None = None) -> int:
             steps_per_epoch=args.steps_per_epoch or None,
             checkpoint_interval_steps=args.checkpoint_interval,
             log_interval_steps=args.log_interval,
-            on_checkpoint=save_progress,
+            on_training_checkpoint=save_progress,
+            resume_state=restored.training_state if restored else None,
             on_improvement=save_best,
             on_epoch=print_epoch,
             on_log=print_progress,
         )
+        if restored and history:
+            # The trainer returns the best weights, including a best model from
+            # before this invocation when resuming to a different output path.
+            best = history[0]
+            for metrics in history[1:]:
+                if metrics.validation_loss < best.validation_loss - training_config.min_delta:
+                    best = metrics
+            save_best(model, best)
         metrics_path = args.metrics_output or args.checkpoint.with_suffix(".metrics.json")
         metrics_path.parent.mkdir(parents=True, exist_ok=True)
         metrics_path.write_text(
@@ -241,18 +267,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.evaluation_size:
             translator = Translator.from_checkpoint(args.checkpoint, device)
-            test_pairs = []
-            for source, target in iter_parallel_rows(args.data):
-                if parallel_partition(
-                    source,
-                    target,
-                    validation_fraction=args.validation_fraction,
-                    test_fraction=args.test_fraction,
-                    seed=args.seed,
-                ) == "test":
-                    test_pairs.append((source, target))
-                    if len(test_pairs) >= args.evaluation_size:
-                        break
+            test_data = IndexedTranslationDataset(**dataset_arguments, partition="test")
+            indices = random.Random(args.seed).sample(range(len(test_data)),
+                                                      min(args.evaluation_size, len(test_data)))
+            test_pairs = [test_data.raw_pair(index) for index in indices]
             if not test_pairs:
                 raise ValueError("the test partition produced no examples")
             hypotheses = [translator.translate(source) for source, _ in test_pairs]

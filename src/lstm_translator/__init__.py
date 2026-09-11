@@ -19,6 +19,7 @@ from .model import (
 )
 from .tokenizer import BPETokenizer
 from .streaming import StreamingTranslationDataset
+from .indexed import CoverageSampler, IndexedTranslationDataset
 from .training import EpochMetrics, TrainingConfig, train_model, train_streaming_model
 
 __all__ = [
@@ -28,6 +29,8 @@ __all__ = [
     "Seq2Seq",
     "Seq2SeqConfig",
     "StreamingTranslationDataset",
+    "IndexedTranslationDataset",
+    "CoverageSampler",
     "TrainingConfig",
     "Translator",
     "TranslationDataset",

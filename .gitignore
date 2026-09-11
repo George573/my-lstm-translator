@@ -4,6 +4,9 @@ data/processed/
 artifacts/checkpoints/*.pth
 artifacts/checkpoints/*.metrics.json
 
+
+**/*.pickle
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -157,6 +160,8 @@ activemq-data/
 .env
 .envrc
 .venv
+.venv*
+.venv-3-12
 env/
 venv/
 ENV/
@@ -222,3 +227,4 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.lstm-index/

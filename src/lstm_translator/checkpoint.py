@@ -2,6 +2,7 @@
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
+import tempfile
 from typing import Any, Mapping
 
 import torch
@@ -20,6 +21,7 @@ class LoadedCheckpoint:
     source_tokenizer: BPETokenizer
     target_tokenizer: BPETokenizer
     metadata: dict[str, Any]
+    training_state: dict[str, Any] | None = None
 
 
 def save_checkpoint(
@@ -30,23 +32,31 @@ def save_checkpoint(
     source_tokenizer: BPETokenizer,
     target_tokenizer: BPETokenizer,
     metadata: Mapping[str, Any] | None = None,
+    *,
+    training_state: Mapping[str, Any] | None = None,
 ) -> None:
     """Save weights together with every mapping required for inference."""
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "checkpoint_version": CHECKPOINT_VERSION,
-            "model_config": asdict(model.config),
-            "model_state": model.state_dict(),
-            "source_vocabulary": source_vocabulary.to_dict(),
-            "target_vocabulary": target_vocabulary.to_dict(),
-            "source_tokenizer": source_tokenizer.to_dict(),
-            "target_tokenizer": target_tokenizer.to_dict(),
-            "metadata": dict(metadata or {}),
-        },
-        destination,
-    )
+    payload = {
+        "checkpoint_version": CHECKPOINT_VERSION,
+        "model_config": asdict(model.config),
+        "model_state": model.state_dict(),
+        "source_vocabulary": source_vocabulary.to_dict(),
+        "target_vocabulary": target_vocabulary.to_dict(),
+        "source_tokenizer": source_tokenizer.to_dict(),
+        "target_tokenizer": target_tokenizer.to_dict(),
+        "metadata": dict(metadata or {}),
+        "training_state": dict(training_state) if training_state is not None else None,
+    }
+    # An interrupted write must leave the previous checkpoint usable.
+    with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False) as handle:
+        temporary = Path(handle.name)
+    try:
+        torch.save(payload, temporary)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def load_checkpoint(
@@ -81,4 +91,5 @@ def load_checkpoint(
         source_tokenizer=BPETokenizer.from_dict(payload["source_tokenizer"]),
         target_tokenizer=BPETokenizer.from_dict(payload["target_tokenizer"]),
         metadata=dict(payload.get("metadata", {})),
+        training_state=payload.get("training_state"),
     )

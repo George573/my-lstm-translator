@@ -119,6 +119,59 @@ tokenizer.save("artifacts/tokenizers/my_tokenizer.json")
 `num_workers=1` is best for small batches. Multiple workers can help with large
 collections of unique words, but process startup has overhead.
 
+## Filter long sentences from a CSV
+
+Create a smaller corpus using the same BPE tokenizers as training:
+
+```bash
+python scripts/filter_csv.py \
+  --input data/csv/en-fr.csv \
+  --output data/csv/en-fr-under-128.csv \
+  --max-tokens 128 \
+  --progress
+```
+
+Both `en` and `fr` must have **fewer than** 128 BPE tokens for a pair to be
+kept. Counts exclude the special tokens added during training (one EOS on the
+source, BOS and EOS on the target). Use `--source-tokenizer` and
+`--target-tokenizer` if training with different tokenizer files.
+
+The script streams rows, preserves all columns and row order, skips empty or
+malformed rows, and refuses to overwrite existing files. Invalid CSV quoting
+stops processing; any output written before an error is incomplete. All eligible
+pairs are retained; this does not draw a random subset. Train on the result with:
+
+```bash
+python scripts/train.py --data data/csv/en-fr-under-128.csv
+```
+
+Limiting sequence length reduces batch memory use. If training still runs out
+of memory, also lower `--batch-size`.
+
+## Benchmark the sampler and data loading
+
+Run this on the training machine to separate permutation setup, sampler
+iteration, CSV reads, BPE encoding, and complete DataLoader throughput:
+
+```bash
+python scripts/benchmark_data.py \
+  --data data/csv/en-fr-under-128.csv \
+  --batch-size 256 --batches 100 --workers 0 4
+```
+
+It uses the training partition and actual coverage sampler, but does not train
+or modify checkpoints. Building the record index and full permutation can take
+time on large datasets. `--index-dir` controls where the index cache is written.
+Random and offset-sorted read tests use the same records. Later stages can
+benefit from filesystem caching; these are not cold-cache measurements.
+
+To investigate network storage, run against identical CSV copies on the network
+mount and local disk, using the same options. The loader test excludes GPU work:
+its next-batch waits measure standalone input throughput, not stalls inside an
+actual training run. At 1.8 training batches/s, the total training budget is
+about 556 ms per batch; loader times near that value suggest input throughput
+could limit training. Much faster loading points toward profiling model work.
+
 ## Train from the command line
 
 The training script reads indexed records from disk and tokenizes examples on

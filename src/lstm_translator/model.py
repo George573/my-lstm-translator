@@ -115,12 +115,13 @@ class Encoder(nn.Module):
     ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
         if lengths.numel() != inputs.size(0):
             raise ValueError("one source length is required per batch item")
+        lengths = lengths.detach().cpu()
         if bool((lengths < 1).any()) or bool((lengths > inputs.size(1)).any()):
             raise ValueError("source lengths must be within the padded sequence width")
         embedded = self.embedding(inputs)
         packed = pack_padded_sequence(
             embedded,
-            lengths.detach().cpu(),
+            lengths,
             batch_first=True,
             enforce_sorted=False,
         )
@@ -144,10 +145,13 @@ class AdditiveAttention(nn.Module):
         self.decoder_projection = nn.Linear(hidden_size, hidden_size, bias=False)
         self.energy = nn.Linear(hidden_size, 1, bias=False)
 
-    def forward(self, query: Tensor, encoder_outputs: Tensor, mask: Tensor) -> Tensor:
+    def forward(self, query: Tensor, encoder_outputs: Tensor, mask: Tensor,
+                projected_encoder: Tensor | None = None) -> Tensor:
+        if projected_encoder is None:
+            projected_encoder = self.encoder_projection(encoder_outputs)
         scores = self.energy(
             torch.tanh(
-                self.encoder_projection(encoder_outputs)
+                projected_encoder
                 + self.decoder_projection(query).unsqueeze(1)
             )
         ).squeeze(-1)
@@ -179,11 +183,12 @@ class Decoder(nn.Module):
         hidden: tuple[Tensor, Tensor],
         encoder_outputs: Tensor,
         source_mask: Tensor,
+        projected_encoder: Tensor | None = None,
     ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
         embedded = self.embedding(inputs)
         if self.attention is not None:
             query = hidden[0][-1]
-            context = self.attention(query, encoder_outputs, source_mask)
+            context = self.attention(query, encoder_outputs, source_mask, projected_encoder)
             recurrent_input = torch.cat((embedded, context), dim=-1)
         else:
             context = None
@@ -229,17 +234,17 @@ class Seq2Seq(nn.Module):
         if not 0.0 <= teacher_forcing_ratio <= 1.0:
             raise ValueError("teacher_forcing_ratio must be in [0, 1]")
         batch_size, target_length = target.shape
-        outputs = source.new_zeros(
-            batch_size,
-            target_length - 1,
-            self.target_vocabulary_size,
-            dtype=self.decoder.output.weight.dtype,
-        )
+        outputs: list[Tensor] = []
         if source_lengths is None:
             source_lengths = source.ne(PAD_INDEX).sum(dim=1)
         source_mask = source.ne(PAD_INDEX)
         encoder_outputs, encoder_hidden = self.encoder(source, source_lengths)
         hidden = self._bridge_hidden(encoder_hidden)
+        # Shared across decoder steps, with autograd accumulating every use.
+        projected_encoder = (
+            self.decoder.attention.encoder_projection(encoder_outputs)
+            if self.decoder.attention is not None else None
+        )
 
         decoder_input = target[:, :1]
         for step in range(target_length - 1):
@@ -248,21 +253,26 @@ class Seq2Seq(nn.Module):
                 hidden,
                 encoder_outputs,
                 source_mask,
+                projected_encoder,
             )
-            outputs[:, step] = predictions[:, 0]
-            predicted = predictions.argmax(-1)
-            if teacher_forcing_ratio == 0.0:
-                decoder_input = predicted
-            elif teacher_forcing_ratio == 1.0:
+            # Stack once instead of building a chain of full-output slice writes.
+            outputs.append(predictions[:, 0])
+            if teacher_forcing_ratio == 1.0:
                 decoder_input = target[:, step + 1 : step + 2]
             else:
-                teacher_mask = torch.rand(batch_size, 1, device=source.device) < teacher_forcing_ratio
-                decoder_input = torch.where(
-                    teacher_mask,
-                    target[:, step + 1 : step + 2],
-                    predicted,
-                )
-        return outputs
+                predicted = predictions.argmax(-1)
+                if teacher_forcing_ratio == 0.0:
+                    decoder_input = predicted
+                else:
+                    teacher_mask = torch.rand(batch_size, 1, device=source.device) < teacher_forcing_ratio
+                    decoder_input = torch.where(
+                        teacher_mask,
+                        target[:, step + 1 : step + 2],
+                        predicted,
+                    )
+        if not outputs:
+            return self.decoder.output.weight.new_zeros(batch_size, 0, self.target_vocabulary_size)
+        return torch.stack(outputs, dim=1)
 
     @torch.no_grad()
     def generate(
@@ -280,6 +290,11 @@ class Seq2Seq(nn.Module):
         encoder_outputs, encoder_hidden = self.encoder(source, source_lengths)
         hidden = self._bridge_hidden(encoder_hidden)
 
+        projected_encoder = (
+            self.decoder.attention.encoder_projection(encoder_outputs)
+            if self.decoder.attention is not None else None
+        )
+
         batch_size = source.size(0)
         decoder_input = torch.full(
             (batch_size, 1), SOS_INDEX, dtype=torch.long, device=source.device
@@ -293,6 +308,7 @@ class Seq2Seq(nn.Module):
                 hidden,
                 encoder_outputs,
                 source_mask,
+                projected_encoder,
             )
             next_token = logits[:, 0].argmax(dim=-1)
             next_token = torch.where(finished, torch.full_like(next_token, EOS_INDEX), next_token)

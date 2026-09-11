@@ -1,3 +1,6 @@
+import copy
+
+import pytest
 import torch
 
 from lstm_translator.model import Seq2Seq, Seq2SeqConfig, Vocabulary
@@ -39,3 +42,63 @@ def test_greedy_generation_has_bounded_length():
     generated = model.generate(torch.tensor([[4, 5, 2]]), max_length=5)
     assert generated.shape[0] == 1
     assert generated.shape[1] <= 5
+
+
+def reference_forward(model, source, target, lengths, ratio):
+    """Original per-step projection and slice-write path for regression checks."""
+    encoded, hidden = model.encoder(source, lengths)
+    hidden = model._bridge_hidden(hidden)
+    mask = source.ne(0)
+    outputs = encoded.new_zeros(source.size(0), target.size(1) - 1,
+                                model.target_vocabulary_size)
+    decoder_input = target[:, :1]
+    for step in range(target.size(1) - 1):
+        predictions, hidden = model.decoder(decoder_input, hidden, encoded, mask)
+        outputs[:, step] = predictions[:, 0]
+        predicted = predictions.argmax(-1)
+        if ratio == 0:
+            decoder_input = predicted
+        elif ratio == 1:
+            decoder_input = target[:, step + 1:step + 2]
+        else:
+            teacher_mask = torch.rand(source.size(0), 1, device=source.device) < ratio
+            decoder_input = torch.where(teacher_mask, target[:, step + 1:step + 2], predicted)
+    return outputs
+
+
+@pytest.mark.parametrize("attention", [False, True])
+@pytest.mark.parametrize("ratio", [0.0, 0.5, 1.0])
+def test_optimized_decoder_matches_original_outputs_and_gradients(attention, ratio):
+    torch.manual_seed(7)
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=2,
+                                      embedding_dim=3, dropout=0.2, attention=attention))
+    reference = copy.deepcopy(model)
+    source = torch.tensor([[4, 5, 2], [6, 2, 0]])
+    target = torch.tensor([[1, 5, 6, 2], [1, 7, 2, 0]])
+    lengths = torch.tensor([3, 2])
+    torch.manual_seed(19)
+    expected = reference_forward(reference, source, target, lengths, ratio)
+    torch.manual_seed(19)
+    actual = model(source, target, lengths, teacher_forcing_ratio=ratio)
+    torch.testing.assert_close(actual, expected)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+    criterion(actual.reshape(-1, 9), target[:, 1:].reshape(-1)).backward()
+    criterion(expected.reshape(-1, 9), target[:, 1:].reshape(-1)).backward()
+    for (name, parameter), (_, original) in zip(model.named_parameters(), reference.named_parameters()):
+        torch.testing.assert_close(parameter.grad, original.grad, msg=lambda msg: f"{name}: {msg}")
+
+
+def test_encoder_projection_runs_once_per_sequence():
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3))
+    calls = []
+    handle = model.decoder.attention.encoder_projection.register_forward_hook(
+        lambda *args: calls.append(1))
+    try:
+        source = torch.tensor([[4, 5, 2]])
+        model(source, torch.tensor([[1, 5, 6, 2]]))
+        assert len(calls) == 1
+        calls.clear()
+        model.generate(source, max_length=5)
+        assert len(calls) == 1
+    finally:
+        handle.remove()

@@ -113,7 +113,7 @@ def train_model(
             disable=not config.show_progress,
         )
         for source, target, lengths in progress:
-            source, target, lengths = source.to(device), target.to(device), lengths.to(device)
+            source, target = source.to(device), target.to(device)
             optimizer.zero_grad(set_to_none=True)
             predictions = model(source, target, lengths, teacher_forcing_ratio=ratio)
             loss = criterion(
@@ -295,7 +295,7 @@ def train_streaming_model(
             ratio = _teacher_forcing_ratio(sampler.cycle + sampler.cursor / sampler.size + 1, config)
             source = source.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
-            lengths = lengths.to(device, non_blocking=True)
+            # Packed encoder lengths stay on CPU.
             optimizer.zero_grad(set_to_none=True)
             predictions = model(source, target, lengths, teacher_forcing_ratio=ratio)
             loss = criterion(
@@ -380,7 +380,7 @@ def _validation_loss(model, loader, criterion, device) -> float:
     total = 0.0
     with torch.no_grad():
         for source, target, lengths in loader:
-            source, target, lengths = source.to(device), target.to(device), lengths.to(device)
+            source, target = source.to(device), target.to(device)
             predictions = model(source, target, lengths, teacher_forcing_ratio=0.0)
             total += criterion(
                 predictions.reshape(-1, model.target_vocabulary_size),
@@ -397,7 +397,7 @@ def _streaming_validation_loss(model, loader, criterion, device, max_steps) -> f
         for source, target, lengths in loader:
             source = source.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
-            lengths = lengths.to(device, non_blocking=True)
+            # Packed encoder lengths stay on CPU.
             predictions = model(source, target, lengths, teacher_forcing_ratio=0.0)
             total += criterion(
                 predictions.reshape(-1, model.target_vocabulary_size),

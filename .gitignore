@@ -1,6 +1,8 @@
 # Project data generated locally
 *.csv
 data/processed/
+artifacts/checkpoints/*.pth
+artifacts/checkpoints/*.metrics.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

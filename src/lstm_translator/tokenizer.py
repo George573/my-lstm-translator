@@ -1,12 +1,13 @@
-import os
-import re
 import json
 import heapq
-from collections import Counter, defaultdict
+import re
+from collections import Counter, OrderedDict, defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from itertools import chain
+from pathlib import Path
+from typing import Dict, Iterable, List, Mapping, Optional, Set, Tuple
+
 from tqdm.auto import tqdm
-from typing import Dict, List, Optional, Set, Tuple
 
 # ---------------------------------------------------------------------------
 # Module-level worker helpers
@@ -25,9 +26,11 @@ def _worker_init(tok: "BPETokenizer") -> None:
     _worker_tok = tok
 
 
-def _worker_encode(words: List[str]) -> Dict[str, List[str]]:
+def _worker_encode(words: List[str]) -> Dict[str, Tuple[str, ...]]:
     """Encode a chunk of unique words inside a worker process."""
-    return {w: _worker_tok.encode_word(w) for w in words}
+    if _worker_tok is None:
+        raise RuntimeError("tokenizer worker was not initialized")
+    return {word: tuple(_worker_tok.encode_word(word)) for word in words}
 
 
 def _chunk(lst: list, n: int) -> List[list]:
@@ -47,16 +50,37 @@ def _chunk(lst: list, n: int) -> List[list]:
 # ---------------------------------------------------------------------------
 
 class BPETokenizer:
-    def __init__(self, word_break: str = '</w>', ukn_token: str = '<ukn>'):
+    """A compact byte-pair encoder with deterministic JSON persistence."""
+
+    FORMAT_VERSION = 2
+
+    def __init__(
+        self,
+        word_break: str = "</w>",
+        unk_token: str = "<unk>",
+        *,
+        lowercase: bool = False,
+        max_cache_size: int = 100_000,
+    ):
+        if max_cache_size < 0:
+            raise ValueError("max_cache_size cannot be negative")
         self.word_break = word_break
-        self.ukn_token = ukn_token
+        self.unk_token = unk_token
+        self.lowercase = lowercase
+        self.max_cache_size = max_cache_size
         self.rules: List[Tuple[str, str]] = []
         self.tokens: Set[str] = set()
         self._pair_to_rank: Dict[Tuple[str, str], int] = {}  # Built once, never during encode
-        self._encode_cache: Dict[str, List[str]] = {}        # Per-word memoisation
+        self._encode_cache: OrderedDict[str, Tuple[str, ...]] = OrderedDict()
 
-        # Pre-compile regex for fast C-level execution
-        self.word_pattern = re.compile(r'[^\W_]+(?:[\'\-][^\W_]+)*\'?')
+        # Words and punctuation are separate units. Unlike the original regex,
+        # this does not silently discard punctuation.
+        self.word_pattern = re.compile(r"[^\W_]+(?:['-][^\W_]+)*'?|[^\w\s]", re.UNICODE)
+
+    @property
+    def ukn_token(self) -> str:
+        """Compatibility alias for tokenizer files created before v2."""
+        return self.unk_token
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -70,9 +94,26 @@ class BPETokenizer:
         """
         self._pair_to_rank = {pair: rank for rank, pair in enumerate(self.rules)}
 
-    def _extract_words(self, texts: List[str]) -> Counter:
+    def _extract_words(self, texts: Iterable[str]) -> Counter:
         """Extract word frequencies from a corpus efficiently."""
-        return Counter(self.word_pattern.findall("\n".join(texts)))
+        words: Counter = Counter()
+        for text in texts:
+            words.update(self._split(text))
+        return words
+
+    def _split(self, text: str) -> List[str]:
+        if self.lowercase:
+            text = text.lower()
+        return self.word_pattern.findall(text)
+
+    def _remember(self, word: str, tokens: Iterable[str]) -> Tuple[str, ...]:
+        encoded = tuple(tokens)
+        if self.max_cache_size:
+            self._encode_cache[word] = encoded
+            self._encode_cache.move_to_end(word)
+            if len(self._encode_cache) > self.max_cache_size:
+                self._encode_cache.popitem(last=False)
+        return encoded
 
     @staticmethod
     def _merge_pair_in_tokens(tokens: List[str], pair: Tuple[str, str]) -> List[str]:
@@ -91,8 +132,11 @@ class BPETokenizer:
     # Training
     # ------------------------------------------------------------------
 
-    def train(self, texts: List[str], n_merges: int = 4500):
+    def train(self, texts: Iterable[str], n_merges: int = 4500) -> None:
         """Train the BPE tokenizer on the provided texts."""
+        if n_merges < 0:
+            raise ValueError("n_merges cannot be negative")
+        self._encode_cache.clear()
         print("Extracting words...")
         # vocab and word_to_tokens are local training artifacts — they are
         # discarded after the merge loop so they don't linger in memory.
@@ -181,16 +225,16 @@ class BPETokenizer:
         """
         cached = self._encode_cache.get(word)
         if cached is not None:
-            return cached
+            self._encode_cache.move_to_end(word)
+            return list(cached)
 
         # Map unknown characters to ukn_token
-        chars = [c if c in self.tokens else self.ukn_token for c in word]
+        chars = [c if c in self.tokens else self.unk_token for c in word]
         chars.append(self.word_break)
         n = len(chars)
 
         if n == 1:
-            self._encode_cache[word] = chars
-            return chars
+            return list(self._remember(word, chars))
 
         # Doubly-linked list over positions: O(1) merge, O(n) traversal
         #   prev[i]  = index of the previous live position  (-1 = none)
@@ -247,14 +291,33 @@ class BPETokenizer:
             result.append(chars[i])
             i = next_[i]
 
-        self._encode_cache[word] = result
-        return result
+        return list(self._remember(word, result))
 
     def encode(self, text: str) -> List[str]:
         """Encode a single text string into BPE tokens."""
         return list(chain.from_iterable(
-            self.encode_word(w) for w in self.word_pattern.findall(text)
+            self.encode_word(word) for word in self._split(text)
         ))
+
+    def decode(self, tokens: Iterable[str]) -> str:
+        """Reconstruct readable text from this tokenizer's BPE tokens."""
+        units: List[str] = []
+        current = ""
+        for token in tokens:
+            if token == self.word_break:
+                units.append(current)
+                current = ""
+            elif token.endswith(self.word_break):
+                current += token[: -len(self.word_break)]
+                units.append(current)
+                current = ""
+            else:
+                current += token
+        if current:
+            units.append(current)
+
+        text = " ".join(unit for unit in units if unit)
+        return re.sub(r"\s+([.,!?;:%)\]}])", r"\1", text)
 
     # ------------------------------------------------------------------
     # Inference — batch of texts
@@ -274,12 +337,18 @@ class BPETokenizer:
                       A sensible default for large batches is os.cpu_count().
         """
         # Step 1: split every text into its word list — regex runs in C
-        word_lists: List[List[str]] = [self.word_pattern.findall(t) for t in texts]
+        if num_workers < 1:
+            raise ValueError("num_workers must be at least 1")
+
+        word_lists: List[List[str]] = [self._split(text) for text in texts]
 
         # Step 2: find unique words not already in the cache
-        uncached = list(
-            {w for wl in word_lists for w in wl} - self._encode_cache.keys()
-        )
+        requested_words = {word for words in word_lists for word in words}
+        uncached = list(requested_words - self._encode_cache.keys())
+        encoded_words: Dict[str, Tuple[str, ...]] = {
+            word: encoded for word, encoded in self._encode_cache.items()
+            if word in requested_words
+        }
 
         # Step 3: encode uncached words — single-process or parallel
         if uncached:
@@ -292,44 +361,60 @@ class BPETokenizer:
                     initargs=(self,),
                 ) as pool:
                     for mapping in pool.map(_worker_encode, chunks):
-                        self._encode_cache.update(mapping)
+                        for word, encoded in mapping.items():
+                            encoded_words[word] = encoded
+                            self._remember(word, encoded)
             else:
                 for word in uncached:
-                    self.encode_word(word)
+                    encoded = tuple(self.encode_word(word))
+                    encoded_words[word] = encoded
 
         # Step 4: reassemble — pure cache lookups, zero re-encoding
         return [
-            list(chain.from_iterable(self._encode_cache[w] for w in wl))
-            for wl in word_lists
+            list(chain.from_iterable(encoded_words[word] for word in words))
+            for words in word_lists
         ]
 
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
 
-    def save(self, filepath: str):
+    def to_dict(self) -> dict:
+        """Return the portable tokenizer state used by checkpoints and JSON."""
+        return {
+            "format_version": self.FORMAT_VERSION,
+            "word_break": self.word_break,
+            "unk_token": self.unk_token,
+            "lowercase": self.lowercase,
+            "rules": [list(rule) for rule in self.rules],
+            "tokens": sorted(self.tokens),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping) -> "BPETokenizer":
+        """Restore a tokenizer, including legacy files using ``ukn_token``."""
+        unk_token = data.get("unk_token", data.get("ukn_token", "<unk>"))
+        tokenizer = cls(
+            word_break=data.get("word_break", "</w>"),
+            unk_token=unk_token,
+            lowercase=bool(data.get("lowercase", False)),
+        )
+        tokenizer.rules = [tuple(rule) for rule in data["rules"]]
+        tokenizer.tokens = set(data["tokens"])
+        tokenizer._build_index()
+        return tokenizer
+
+    def save(self, filepath: str | Path) -> None:
         """Save the tokenizer to a JSON file.
 
         Compatible with inference implementations expecting
         (rules, tokens, ukn_token). Vocab is never written.
         """
-        data = {
-            'word_break': self.word_break,
-            'ukn_token':  self.ukn_token,
-            'rules':      self.rules,          # List[Tuple] → List[List] in JSON
-            'tokens':     sorted(self.tokens), # Stable output across runs
-        }
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        with Path(filepath).open("w", encoding="utf-8") as tokenizer_file:
+            json.dump(self.to_dict(), tokenizer_file, ensure_ascii=False, indent=2)
 
     @classmethod
-    def load(cls, filepath: str) -> "BPETokenizer":
+    def load(cls, filepath: str | Path) -> "BPETokenizer":
         """Load a pre-trained tokenizer from a JSON file."""
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        tok = cls(word_break=data['word_break'], ukn_token=data['ukn_token'])
-        tok.rules  = [tuple(r) for r in data['rules']]
-        tok.tokens = set(data['tokens'])
-        tok._build_index()   # O(rules) — done once here, never during encode
-        return tok
+        with Path(filepath).open(encoding="utf-8") as tokenizer_file:
+            return cls.from_dict(json.load(tokenizer_file))

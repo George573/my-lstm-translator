@@ -13,11 +13,14 @@ providing a production-ready translation service.
 - A custom BPE tokenizer with training, JSON persistence, caching, and optional
   multiprocessing for batch encoding.
 - Pretrained English and French BPE vocabularies and merge rules.
-- A bidirectional LSTM encoder and autoregressive LSTM decoder implemented in
-  PyTorch.
-- Teacher forcing, gradient clipping, validation, checkpointing, and early
-  stopping in the training loop.
-- An English-French sentence-pair corpus and a saved model checkpoint.
+- A padding-aware bidirectional LSTM encoder, additive attention, and an
+  autoregressive LSTM decoder implemented in PyTorch.
+- Reproducible train/validation/test splits, scheduled teacher forcing,
+  gradient clipping, checkpointing, and early stopping.
+- Self-contained checkpoints and a high-level text translation interface.
+- BLEU and chrF evaluation on held-out sentence pairs.
+- An English-French sentence-pair corpus. Train the model notebook to create a
+  compatible checkpoint locally.
 
 ## Architecture
 
@@ -27,9 +30,9 @@ The translation pipeline is:
 English text
     -> English BPE tokenizer
     -> token embeddings
-    -> bidirectional LSTM encoder
+    -> packed bidirectional LSTM encoder
     -> bridged forward/backward hidden state
-    -> autoregressive LSTM decoder
+    -> attention-guided autoregressive LSTM decoder
     -> French BPE tokens
 ```
 
@@ -49,9 +52,15 @@ requirements of the tokenizer or model design.
 ├── notebooks/
 │   ├── train_model.ipynb
 │   └── train_tokenizers.ipynb
+├── scripts/
+│   └── train.py           # Command-line training entry point
 ├── src/lstm_translator/
 │   ├── data.py            # Parallel-corpus loaders
-│   ├── model.py           # Reusable encoder-decoder components
+│   ├── evaluation.py      # BLEU and chrF scoring
+│   ├── inference.py       # High-level translation interface
+│   ├── model.py           # Attention-based encoder-decoder
+│   ├── streaming.py       # Constant-memory iterable dataset
+│   ├── training.py        # Reproducible training loop
 │   └── tokenizer.py       # BPE training and encoding
 ├── tests/
 ├── pyproject.toml
@@ -110,15 +119,71 @@ tokenizer.save("artifacts/tokenizers/my_tokenizer.json")
 `num_workers=1` is best for small batches. Multiple workers can help with large
 collections of unique words, but process startup has overhead.
 
-## Training workflow
+## Train from the command line
+
+The training script is the primary way to train the model. It streams the
+corpus directly from disk and tokenizes examples on demand, so RAM use does not
+grow with the number of rows. Defaults point to the included corpus and
+tokenizer artifacts:
+
+```bash
+python scripts/train.py
+```
+
+For a quick CPU smoke run, explicitly limit the number of batches:
+
+```bash
+python scripts/train.py \
+  --steps-per-epoch 10 \
+  --epochs 1 \
+  --hidden-size 32 \
+  --layers 1 \
+  --embedding-size 32 \
+  --evaluation-size 10 \
+  --device cpu
+```
+
+Useful options include:
+
+```bash
+python scripts/train.py --help
+python scripts/train.py --device cuda --batch-size 64
+python scripts/train.py --data-workers 4 --epochs 2
+python scripts/train.py --progress
+python scripts/train.py --checkpoint artifacts/checkpoints/experiment-01.pth
+```
+
+The script:
+
+1. Reads TSV/TXT rows or CSV files with `en` and `fr` columns lazily.
+2. Assigns every pair to train, validation, or test with a stable hash, without
+   building an in-memory index.
+3. Uses a bounded shuffle buffer and tokenizes each batch on demand.
+4. Trains with validation, teacher-forcing decay, gradient clipping, and early
+   stopping.
+5. Saves progress snapshots periodically and saves each improved self-contained
+   checkpoint.
+6. Writes the epoch history beside the checkpoint as JSON.
+7. Reports BLEU and chrF on held-out examples.
+
+By default, one epoch consumes the complete training partition. On a 22-million
+row dataset, start with one epoch and increase only after measuring runtime.
+`--steps-per-epoch` is intended for smoke tests and debugging, not normal
+training.
+
+Checkpoint files and metrics are ignored by Git because they are generated
+artifacts and can become large.
+
+## Notebook workflow
 
 1. Create and activate the environment described above.
 2. Open `notebooks/train_tokenizers.ipynb` to train new tokenizers, or use the
    included JSON tokenizer files.
-3. Open `notebooks/train_model.ipynb` and run the model-definition cells.
-4. Select the dataset source in the data-loading cell.
-5. Tokenize the parallel sentences, construct the vocabularies, and train the
-   model.
+3. Open `notebooks/train_model.ipynb` and run its cells. The notebook uses the
+   package implementation rather than maintaining a second model copy.
+4. The best validation checkpoint is written to
+   `artifacts/checkpoints/model-v1.pth`.
+5. The final cell translates held-out examples and reports BLEU and chrF.
 
 The tracked corpus can also be loaded from Python:
 
@@ -128,13 +193,19 @@ from lstm_translator import load_parallel_tsv
 en_texts, fr_texts = load_parallel_tsv("data/raw/fra.txt", num_samples=1.0)
 ```
 
-The checkpoint contains only a PyTorch state dictionary. To load it, first run
-the tokenizer, vocabulary, and model-definition cells so the architecture and
-token-index mappings match, then call:
+New checkpoints contain the weights, architecture configuration, exact
+vocabularies, both tokenizers, and training metadata. After training, translate
+text without rebuilding those objects manually:
 
 ```python
-model.load_model("artifacts/checkpoints/best_model.pth")
+from lstm_translator import Translator
+
+translator = Translator.from_checkpoint("artifacts/checkpoints/model-v1.pth")
+print(translator.translate("How are you?"))
 ```
+
+The former weights-only checkpoint was removed because its vocabulary was not
+stored and therefore could not be reconstructed safely.
 
 ## Dataset
 
@@ -148,22 +219,19 @@ information is separate from the software license in this repository.
 
 - This is an educational experiment and has not been benchmarked as a
   production translation system.
-- The decoder does not currently use an attention mechanism.
-- The complete training loop still lives in a notebook; the tokenizer, data
-  loaders, and neural-network components are reusable Python modules.
-- The saved checkpoint depends on the exact architecture and token ordering
-  used when it was created.
-- Punctuation is excluded by the tokenizer's current word-matching expression.
-- Automated tests and standard translation metrics such as BLEU are not yet
-  included.
+- Inference currently uses greedy decoding rather than beam search.
+- The included tokenizer artifacts were trained by the earlier word-only
+  splitter. Retrain them with `train_tokenizers.ipynb` to learn punctuation
+  tokens with the current tokenizer.
+- Exact reproducibility can still vary across PyTorch versions and GPU
+  architectures.
 
 ## Ideas for future work
 
-- Extract the training loop into the package.
-- Add a command-line translation demo and self-describing checkpoints.
-- Add attention or compare the LSTM baseline with a Transformer.
-- Track BLEU or chrF on a fixed test split.
-- Add tests for BPE training, serialization, unknown characters, and batching.
+- Add beam-search decoding and length normalization.
+- Compare the attention-based LSTM baseline with a Transformer.
+- Add experiment tracking and publish reproducible benchmark results.
+- Add a command-line or small web demo.
 
 ## License
 

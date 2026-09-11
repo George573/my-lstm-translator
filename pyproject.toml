@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 license = { text = "GPL-2.0-only" }
 dependencies = [
     "pandas>=2.0,<4.0",
+    "sacrebleu>=2.4,<3.0",
     "torch>=2.0",
     "tqdm>=4.66,<5.0",
 ]

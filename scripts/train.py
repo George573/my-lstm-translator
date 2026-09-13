@@ -64,6 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="deprecated; indexed training uses a global permutation")
     parser.add_argument("--index-dir", type=Path, help="record-index cache directory")
     parser.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
+    parser.add_argument("--reset-patience", action="store_true",
+                        help="reset the early-stopping counter on resume; keep the best validation loss")
     parser.add_argument("--validation-steps", type=positive_int, default=1_000)
     parser.add_argument(
         "--steps-per-epoch",
@@ -113,7 +115,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.reset_patience and args.resume is None:
+        parser.error("--reset-patience requires --resume")
     try:
         device = resolve_device(args.device)
         _require_files(args.data)
@@ -244,6 +249,7 @@ def main(argv: list[str] | None = None) -> int:
             log_interval_steps=args.log_interval,
             on_training_checkpoint=save_progress,
             resume_state=restored.training_state if restored else None,
+            reset_patience=args.reset_patience,
             on_improvement=save_best,
             on_epoch=print_epoch,
             on_log=print_progress,

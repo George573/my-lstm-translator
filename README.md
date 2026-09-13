@@ -246,6 +246,12 @@ resume requires the same Python shuffle implementation for identical ordering;
 bitwise model reproducibility also depends on the device/software environment.
 Old inference-only checkpoints cannot resume training.
 
+To continue after early stopping, add `--reset-patience` alongside `--resume`
+to your original command. This resets the count of validation checks without
+improvement to zero, retaining the best validation loss and all training progress.
+With `--patience 5`, training can run for five more checks without improvement.
+Keep `--epochs` high enough to allow those additional intervals; it remains a total.
+
 Index files are reused while the source path, size, timestamps and partition
 settings match. Keep the source unchanged during training. The corpus itself is
 never deleted or rewritten. Random-read throughput depends on storage; this

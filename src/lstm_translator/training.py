@@ -169,6 +169,7 @@ def train_streaming_model(
     on_epoch: Callable[[EpochMetrics], None] | None = None,
     on_log: Callable[[int, int, float], None] | None = None,
     resume_state: dict | None = None,
+    reset_patience: bool = False,
     on_training_checkpoint: Callable[[Seq2Seq, dict], None] | None = None,
 ) -> list[EpochMetrics]:
     """Train consecutive intervals of a global permutation without replacement.
@@ -177,6 +178,8 @@ def train_streaming_model(
     does not reset coverage. Teacher forcing follows fractional dataset passes.
     """
     config = config or TrainingConfig(epochs=1)
+    if reset_patience and resume_state is None:
+        raise ValueError("reset_patience requires a training checkpoint to resume")
     _validate_config(config)
     if num_workers < 0:
         raise ValueError("num_workers cannot be negative")
@@ -244,7 +247,7 @@ def train_streaming_model(
         pending_ratio = resume_state["teacher_forcing_ratio"]
         history = [EpochMetrics(**item) for item in resume_state["history"]]
         best_state, best_loss = resume_state["best_state"], resume_state["best_loss"]
-        stale_epochs = resume_state["stale_intervals"]
+        stale_epochs = 0 if reset_patience else resume_state["stale_intervals"]
         random.setstate(resume_state["python_rng"])
         torch.set_rng_state(resume_state["torch_rng"].cpu())
         if torch.cuda.is_available() and resume_state["cuda_rng"] is not None:

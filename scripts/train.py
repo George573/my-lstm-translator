@@ -66,6 +66,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
     parser.add_argument("--reset-patience", action="store_true",
                         help="reset the early-stopping counter on resume; keep the best validation loss")
+    parser.add_argument("--resume-tf-decay-epochs", type=positive_int,
+                        help="on resume, decay from saved teacher forcing to its configured end over this many logged epochs")
     parser.add_argument("--validation-steps", type=positive_int, default=1_000)
     parser.add_argument(
         "--steps-per-epoch",
@@ -93,7 +95,8 @@ def build_parser() -> argparse.ArgumentParser:
     training.add_argument("--validation-fraction", type=fraction, default=0.01)
     training.add_argument("--teacher-forcing-start", type=probability, default=1.0)
     training.add_argument("--teacher-forcing-end", type=probability, default=0.1)
-    training.add_argument("--teacher-forcing-decay-epochs", type=positive_int, default=25)
+    training.add_argument("--teacher-forcing-decay-epochs", type=positive_int, default=25,
+                          help="logged epochs over which teacher forcing decays; updated at each epoch start")
     training.add_argument("--patience", type=positive_int, default=5,
                           help="validation checks without improvement before stopping")
     training.add_argument("--min-delta", type=non_negative_float, default=0.01)
@@ -119,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.reset_patience and args.resume is None:
         parser.error("--reset-patience requires --resume")
+    if args.resume_tf_decay_epochs is not None and args.resume is None:
+        parser.error("--resume-tf-decay-epochs requires --resume")
     try:
         device = resolve_device(args.device)
         _require_files(args.data)
@@ -250,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             on_training_checkpoint=save_progress,
             resume_state=restored.training_state if restored else None,
             reset_patience=args.reset_patience,
+            resume_tf_decay_epochs=args.resume_tf_decay_epochs,
             on_improvement=save_best,
             on_epoch=print_epoch,
             on_log=print_progress,

@@ -73,7 +73,8 @@ def test_resume_after_early_stopping(tmp_path, monkeypatch, reset):
         assert torch.equal(after["best_state"][key], value)
 
 
-def test_reset_patience_requires_resume():
+@pytest.mark.parametrize("flags", [["--reset-patience"], ["--resume-tf-decay-epochs", "5"]])
+def test_resume_options_require_resume(flags):
     main = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/train.py"))["main"]
     with pytest.raises(SystemExit, match="2"):
-        main(["--reset-patience"])
+        main(flags)

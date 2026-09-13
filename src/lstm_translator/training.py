@@ -170,16 +170,22 @@ def train_streaming_model(
     on_log: Callable[[int, int, float], None] | None = None,
     resume_state: dict | None = None,
     reset_patience: bool = False,
+    resume_tf_decay_epochs: int | None = None,
     on_training_checkpoint: Callable[[Seq2Seq, dict], None] | None = None,
 ) -> list[EpochMetrics]:
     """Train consecutive intervals of a global permutation without replacement.
 
     An interval ends at its step limit or the end of a dataset pass. Validation
-    does not reset coverage. Teacher forcing follows fractional dataset passes.
+    does not reset coverage. New teacher-forcing schedules count these intervals.
     """
     config = config or TrainingConfig(epochs=1)
     if reset_patience and resume_state is None:
         raise ValueError("reset_patience requires a training checkpoint to resume")
+    if resume_tf_decay_epochs is not None:
+        if resume_state is None:
+            raise ValueError("resume_tf_decay_epochs requires a training checkpoint to resume")
+        if resume_tf_decay_epochs < 1:
+            raise ValueError("resume_tf_decay_epochs must be positive")
     _validate_config(config)
     if num_workers < 0:
         raise ValueError("num_workers cannot be negative")
@@ -231,6 +237,11 @@ def train_streaming_model(
     pending_steps = 0
     pending_loss = 0.0
     pending_ratio = None
+    teacher_forcing_schedule = dict(
+        start_epoch=1, start_ratio=config.teacher_forcing_start,
+        end_ratio=config.teacher_forcing_end,
+        decay_epochs=config.teacher_forcing_decay_epochs,
+    )
     settings = {key: value for key, value in asdict(config).items()
                 if key not in {"epochs", "show_progress"}}
     settings.update(steps_per_epoch=steps_per_epoch, validation_steps=validation_steps)
@@ -245,6 +256,14 @@ def train_streaming_model(
         start_epoch = resume_state["epoch"]
         pending_steps, pending_loss = resume_state["interval_steps"], resume_state["interval_loss"]
         pending_ratio = resume_state["teacher_forcing_ratio"]
+        teacher_forcing_schedule = resume_state.get("teacher_forcing_schedule")
+        if resume_tf_decay_epochs is not None:
+            teacher_forcing_schedule = dict(
+                start_epoch=start_epoch,
+                start_ratio=pending_ratio,
+                end_ratio=config.teacher_forcing_end,
+                decay_epochs=resume_tf_decay_epochs,
+            )
         history = [EpochMetrics(**item) for item in resume_state["history"]]
         best_state, best_loss = resume_state["best_state"], resume_state["best_loss"]
         stale_epochs = 0 if reset_patience else resume_state["stale_intervals"]
@@ -255,6 +274,19 @@ def train_streaming_model(
         if device.type == "mps" and resume_state.get("mps_rng") is not None:
             torch.mps.set_rng_state(resume_state["mps_rng"].cpu())
 
+    def current_teacher_forcing():
+        dataset_pass = sampler.cycle + sampler.cursor / sampler.size
+        # Preserve old checkpoints' schedules unless explicitly restarted.
+        if teacher_forcing_schedule is None:
+            return _teacher_forcing_ratio(dataset_pass + 1, config)
+        schedule = teacher_forcing_schedule
+        if "start_epoch" in schedule:
+            progress = (epoch - schedule["start_epoch"]) / schedule["decay_epochs"]
+        else:
+            progress = (dataset_pass - schedule["start_pass"]) / schedule["decay_passes"]
+        progress = min(1.0, max(0.0, progress))
+        return schedule["start_ratio"] + progress * (schedule["end_ratio"] - schedule["start_ratio"])
+
     def save_training_state(epoch, steps, loss):
         if on_training_checkpoint is not None:
             on_training_checkpoint(model, dict(
@@ -262,6 +294,7 @@ def train_streaming_model(
                 sampler=sampler.state_dict(), optimizer=optimizer.state_dict(),
                 global_step=global_step, epoch=epoch, interval_steps=steps,
                 teacher_forcing_ratio=ratio,
+                teacher_forcing_schedule=teacher_forcing_schedule,
                 interval_loss=loss, history=[asdict(item) for item in history],
                 best_state=best_state, best_loss=best_loss, stale_intervals=stale_epochs,
                 python_rng=random.getstate(), torch_rng=torch.get_rng_state(),
@@ -274,7 +307,7 @@ def train_streaming_model(
             break
         if sampler.cursor == sampler.size and pending_steps == 0:
             sampler.next_cycle()
-        ratio = _teacher_forcing_ratio(sampler.cycle + sampler.cursor / sampler.size + 1, config)
+        ratio = current_teacher_forcing()
         if pending_steps and pending_ratio is not None:
             ratio = pending_ratio
         model.train()
@@ -295,7 +328,7 @@ def train_streaming_model(
             disable=not config.show_progress,
         )
         for source, target, lengths in progress:
-            ratio = _teacher_forcing_ratio(sampler.cycle + sampler.cursor / sampler.size + 1, config)
+            ratio = current_teacher_forcing()
             source = source.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
             # Packed encoder lengths stay on CPU.

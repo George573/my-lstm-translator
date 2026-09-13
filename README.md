@@ -226,8 +226,8 @@ By default, one interval consumes the complete training partition. With
 next interval continues with unused rows. An interval also ends at the end of
 a dataset pass, so its final batch/interval may be shorter. Only then is a new
 permutation created. `--epochs` counts validation intervals; `--patience` counts
-validation checks without improvement. Teacher-forcing decay follows fractional
-dataset passes, independently of validation frequency. `--shuffle-buffer` is
+validation checks without improvement. `--teacher-forcing-decay-epochs` counts
+these same logged epochs, with a constant ratio within each epoch. `--shuffle-buffer` is
 retained as a deprecated no-op for the CLI; the legacy standalone iterable
 dataset remains available for callers needing sequential buffered streaming.
 
@@ -251,6 +251,18 @@ to your original command. This resets the count of validation checks without
 improvement to zero, retaining the best validation loss and all training progress.
 With `--patience 5`, training can run for five more checks without improvement.
 Keep `--epochs` high enough to allow those additional intervals; it remains a total.
+
+To shorten teacher-forcing decay without a jump, add `--resume-tf-decay-epochs 5`
+alongside `--resume`. The new schedule starts at the checkpoint's saved ratio and
+reaches the original `--teacher-forcing-end` at the start of the sixth resumed
+epoch, after five epoch transitions. Keep the original training settings,
+including `--teacher-forcing-decay-epochs`.
+The new schedule is saved in subsequent checkpoints: omit `--resume-tf-decay-epochs`
+on later resumes to continue it. Supplying the flag again starts another schedule
+from that checkpoint. Early stopping still applies; `--reset-patience` resets its
+counter independently.
+Older checkpoints retain their dataset-pass schedule when resumed without this
+flag; use `--resume-tf-decay-epochs` to switch them to logged epochs explicitly.
 
 Index files are reused while the source path, size, timestamps and partition
 settings match. Keep the source unchanged during training. The corpus itself is

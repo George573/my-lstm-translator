@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import replace
 from itertools import islice
 
 import pytest
@@ -10,6 +11,80 @@ from lstm_translator import (
     TrainingConfig, Vocabulary, train_streaming_model,
 )
 from lstm_translator.data import iter_parallel_rows, parallel_partition
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_resumed_teacher_forcing_schedule_is_continuous_and_persisted(tmp_path, legacy):
+    torch.set_num_threads(1)
+    path = tmp_path / "pairs.tsv"
+    path.write_text("".join(f"{i}\t{i}\n" for i in range(11)))
+    data = dataset(path)
+    config = TrainingConfig(epochs=1, batch_size=4, patience=20,
+                            teacher_forcing_end=0.2)
+    model = Seq2Seq(len(data.source_vocabulary), len(data.target_vocabulary),
+                   Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3, dropout=0))
+    saved = []
+    ratios = []
+    def capture(current, state):
+        saved.append((deepcopy(current.state_dict()), deepcopy(state)))
+    hook = model.register_forward_pre_hook(
+        lambda module, args, kwargs: ratios.append(kwargs["teacher_forcing_ratio"])
+        if module.training else None, with_kwargs=True)
+    options = dict(steps_per_epoch=2, validation_steps=1,
+                   checkpoint_interval_steps=1, on_training_checkpoint=capture)
+    train_streaming_model(model, data, data, config, **options)
+    weights, state = saved[-1]
+    if legacy:
+        state.pop("teacher_forcing_schedule")
+        state["teacher_forcing_ratio"] = 0.97
+    model.load_state_dict(weights)
+    saved.clear()
+    ratios.clear()
+    train_streaming_model(model, data, data, replace(config, epochs=5),
+                         resume_state=state, resume_tf_decay_epochs=1, **options)
+    assert ratios[0] == state["teacher_forcing_ratio"]
+    assert ratios[-1] == pytest.approx(0.2)
+    assert all(a >= b for a, b in zip(ratios, ratios[1:]))
+    expected_weights = deepcopy(model.state_dict())
+    expected_history = saved[-1][1]["history"]
+    weights, interrupted = saved[0]
+    assert interrupted["teacher_forcing_schedule"]["decay_epochs"] == 1
+    model.load_state_dict(weights)
+    saved.clear()
+    train_streaming_model(model, data, data, replace(config, epochs=5),
+                         resume_state=interrupted, **options)
+    assert saved[-1][1]["history"] == expected_history
+    for key, value in expected_weights.items():
+        assert torch.equal(model.state_dict()[key], value)
+    hook.remove()
+
+
+@pytest.mark.parametrize("interval_steps", [1, 2])
+def test_teacher_forcing_decay_counts_logged_epochs(tmp_path, interval_steps):
+    torch.set_num_threads(1)
+    path = tmp_path / "pairs.tsv"
+    path.write_text("".join(f"{i}\t{i}\n" for i in range(11)))
+    data = dataset(path)
+    model = Seq2Seq(len(data.source_vocabulary), len(data.target_vocabulary),
+                   Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3, dropout=0))
+    config = TrainingConfig(epochs=4, batch_size=4, patience=20,
+                            teacher_forcing_start=1.0, teacher_forcing_end=0.2,
+                            teacher_forcing_decay_epochs=2)
+    ratios = []
+    hook = model.register_forward_pre_hook(
+        lambda module, args, kwargs: ratios.append(kwargs["teacher_forcing_ratio"])
+        if module.training else None, with_kwargs=True)
+    per_epoch = []
+    def end_epoch(metrics):
+        per_epoch.append(ratios[:])
+        ratios.clear()
+    history = train_streaming_model(model, data, data, config,
+                                    steps_per_epoch=interval_steps, validation_steps=1,
+                                    on_epoch=end_epoch)
+    assert [item.teacher_forcing_ratio for item in history] == pytest.approx([1.0, 0.6, 0.2, 0.2])
+    for observed, expected in zip(per_epoch, [1.0, 0.6, 0.2, 0.2]):
+        assert observed == pytest.approx([expected] * len(observed))
+    hook.remove()
 
 
 class Words:

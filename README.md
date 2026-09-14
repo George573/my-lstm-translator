@@ -302,6 +302,18 @@ translator = Translator.from_checkpoint("artifacts/checkpoints/model-v1.pth")
 print(translator.translate("How are you?"))
 ```
 
+For an interactive English-to-French prompt, run:
+
+```bash
+python scripts/translate.py
+```
+
+This loads `artifacts/checkpoints/model-32mil-param-quick-tf-decay.latest.pth`
+once, then prints a French translation for each English sentence you enter.
+Type `/quit` or press Ctrl+C to exit. Use `--checkpoint PATH` to select another
+model, `--device cuda` to use a GPU, or `--max-length 200` to raise the output
+token limit.
+
 The former weights-only checkpoint was removed because its vocabulary was not
 stored and therefore could not be reconstructed safely.
 

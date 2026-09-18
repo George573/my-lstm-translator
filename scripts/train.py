@@ -212,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
                     "model_config": asdict(model_config),
                     "training_config": asdict(training_config),
                     "loss_aggregation": "non-padding-token-mean",
+                    "validation_teacher_forcing": "training",
                     "partition_scheme": "normalized-source-v1",
                 },
             )
@@ -236,6 +237,7 @@ def main(argv: list[str] | None = None) -> int:
                     "model_config": asdict(model_config),
                     "training_config": asdict(training_config),
                     "loss_aggregation": "non-padding-token-mean",
+                    "validation_teacher_forcing": "training",
                     "partition_scheme": "normalized-source-v1",
                 },
                 training_state=state,

@@ -63,7 +63,7 @@ def test_training_loss_weights_tokens_and_groups_sources(monkeypatch):
             losses.append(loss.item()); counts.append(target.ne(0).sum().item())
         return loss
     monkeypatch.setattr(torch.nn.CrossEntropyLoss, "forward", capture)
-    def validate(current, loader, criterion, device):
+    def validate(current, loader, criterion, device, teacher_forcing_ratio):
         training_sources = set(seen)
         held_out = {tuple(source.tolist()) for source, _ in loader.dataset}
         assert training_sources.isdisjoint(held_out)
@@ -99,7 +99,7 @@ def test_raw_source_groups_precede_lossy_tokenization(monkeypatch):
     sources = [["a"], ["b"], ["c"], ["d"]]
     groups = ["café", "CAFE\u0301", "other", "goodbye"]
     captured = []
-    def validate(current, loader, criterion, device):
+    def validate(current, loader, criterion, device, teacher_forcing_ratio):
         captured.extend(loader.dataset.indices)
         return 1.0
     monkeypatch.setattr("lstm_translator.training._validation_loss", validate)
@@ -108,3 +108,55 @@ def test_raw_source_groups_precede_lossy_tokenization(monkeypatch):
     assert (0 in captured) == (1 in captured)
     with pytest.raises(ValueError, match="source_groups"):
         train_model(model, sources, sources, vocab, vocab, source_groups=["missing rows"])
+
+
+@pytest.mark.parametrize("indexed", [False, True])
+def test_validation_uses_training_teacher_forcing(tmp_path, indexed):
+    from lstm_translator import BPETokenizer, IndexedTranslationDataset, train_streaming_model
+
+    torch.set_num_threads(1)
+    tokenizer = BPETokenizer()
+    texts = [f"example {i}" for i in range(20)]
+    tokenizer.train(texts, n_merges=0)
+    vocab = Vocabulary(tokenizer.tokens)
+    model = Seq2Seq(len(vocab), len(vocab), Seq2SeqConfig(
+        hidden_size=2, num_layers=1, embedding_dim=2))
+    config = TrainingConfig(epochs=3, batch_size=4, patience=10,
+                            teacher_forcing_start=0.8, teacher_forcing_end=0.2,
+                            teacher_forcing_decay_epochs=2)
+    training_ratios, validation_ratios = [], []
+    observed_epochs = []
+    def observe(module, args, kwargs):
+        ratios = training_ratios if module.training else validation_ratios
+        ratios.append(kwargs["teacher_forcing_ratio"])
+        if not module.training:
+            assert not torch.is_grad_enabled()
+    def epoch_finished(metrics):
+        assert training_ratios and validation_ratios
+        assert training_ratios == pytest.approx([metrics.teacher_forcing_ratio] * len(training_ratios))
+        assert validation_ratios == pytest.approx([metrics.teacher_forcing_ratio] * len(validation_ratios))
+        observed_epochs.append(metrics.teacher_forcing_ratio)
+        training_ratios.clear()
+        validation_ratios.clear()
+    hook = model.register_forward_pre_hook(observe, with_kwargs=True)
+    saved = []
+    try:
+        if indexed:
+            corpus = tmp_path / "pairs.tsv"
+            corpus.write_text("".join(f"{text}\t{text}\n" for text in texts))
+            data = IndexedTranslationDataset(corpus, tokenizer, tokenizer, vocab, vocab,
+                                             validation_fraction=0, test_fraction=0)
+            train_streaming_model(model, data, data, config, steps_per_epoch=1,
+                                  validation_steps=2, on_epoch=epoch_finished,
+                                  on_training_checkpoint=lambda model, state: saved.append(state))
+            old_state = saved[-1]
+            del old_state["settings"]["validation_teacher_forcing"]
+            with pytest.raises(ValueError, match="validation_teacher_forcing"):
+                train_streaming_model(model, data, data, config, steps_per_epoch=1,
+                                      validation_steps=2, resume_state=old_state)
+        else:
+            sequences = tokenizer.encode_batch(texts)
+            train_model(model, sequences, sequences, vocab, vocab, config, on_epoch=epoch_finished)
+    finally:
+        hook.remove()
+    assert observed_epochs == pytest.approx([0.8, 0.5, 0.2])

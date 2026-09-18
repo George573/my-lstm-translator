@@ -138,7 +138,7 @@ def train_model(
             if config.show_progress:
                 progress.set_postfix(loss=f"{training_loss / training_tokens:.4f}")
 
-        validation_loss = _validation_loss(model, validation_loader, criterion, device)
+        validation_loss = _validation_loss(model, validation_loader, criterion, device, ratio)
         metrics = EpochMetrics(
             epoch,
             training_loss / training_tokens,
@@ -262,6 +262,7 @@ def train_streaming_model(
     settings = {key: value for key, value in asdict(config).items()
                 if key not in {"epochs", "show_progress"}}
     settings.update(steps_per_epoch=steps_per_epoch, validation_steps=validation_steps)
+    settings["validation_teacher_forcing"] = "training"
     fingerprints = [(training_data.fingerprint, training_data.partition),
                     (validation_data.fingerprint, validation_data.partition)]
     if resume_state is not None:
@@ -379,7 +380,7 @@ def train_streaming_model(
         if epoch_steps == 0:
             raise ValueError("the training partition produced no examples")
         validation_loss = _streaming_validation_loss(
-            model, validation_loader, criterion, device, validation_steps
+            model, validation_loader, criterion, device, validation_steps, ratio
         )
         metrics = EpochMetrics(
             epoch=epoch,
@@ -464,8 +465,8 @@ def _train_batch(model, source, target, lengths, criterion, optimizer,
     return value, tokens
 
 
-def _validation_loss(model, loader, criterion, device) -> float:
-    return _streaming_validation_loss(model, loader, criterion, device, None)
+def _validation_loss(model, loader, criterion, device, teacher_forcing_ratio=0.0) -> float:
+    return _streaming_validation_loss(model, loader, criterion, device, None, teacher_forcing_ratio)
 
 
 def _loss_statistics(loss, target) -> tuple[float, int]:
@@ -478,7 +479,8 @@ def _loss_statistics(loss, target) -> tuple[float, int]:
     return value, tokens
 
 
-def _streaming_validation_loss(model, loader, criterion, device, max_steps) -> float:
+def _streaming_validation_loss(model, loader, criterion, device, max_steps,
+                               teacher_forcing_ratio=0.0) -> float:
     model.eval()
     total = 0.0
     total_tokens = 0
@@ -488,7 +490,7 @@ def _streaming_validation_loss(model, loader, criterion, device, max_steps) -> f
             source = source.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
             # Packed encoder lengths stay on CPU.
-            predictions = model(source, target, lengths, teacher_forcing_ratio=0.0)
+            predictions = model(source, target, lengths, teacher_forcing_ratio=teacher_forcing_ratio)
             loss = criterion(
                 predictions.reshape(-1, model.target_vocabulary_size),
                 target[:, 1:].reshape(-1),

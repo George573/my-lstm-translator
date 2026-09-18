@@ -304,10 +304,18 @@ passes raw English texts as `train_model(..., source_groups=train_english)` for
 validation grouping before lossy tokenization. Direct callers can do the same;
 without `source_groups`, the trainer groups the supplied BPE text.
 
-The dashboard labels validation minus training loss as a difference, not a
-measure of overfitting: training uses scheduled teacher forcing and validation
-uses autoregressive decoding. New token-weighted metrics are not directly
-comparable to historical batch-averaged metrics.
+Validation uses the same teacher-forcing ratio as its training interval, with
+`model.eval()` and no gradient computation. At intermediate ratios, teacher
+forcing choices are random. Translation and BLEU/chrF evaluation still generate
+without reference tokens. The dashboard shows validation minus training loss;
+training loss is collected while weights change and dropout is active, whereas
+validation evaluates the final interval weights with dropout disabled.
+
+Older runs used zero teacher forcing for validation. Their best losses and
+early-stopping counters are not comparable to this policy, so resuming such a
+checkpoint is rejected with a `validation_teacher_forcing` settings mismatch.
+Use `--init-checkpoint` to reuse weights with fresh metrics and optimizer state.
+New token-weighted metrics also differ from historical batch-averaged metrics.
 
 ## Evaluate saved checkpoints
 

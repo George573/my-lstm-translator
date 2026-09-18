@@ -21,6 +21,7 @@ from .model import (
 from .streaming import StreamingTranslationDataset
 from .indexed import CoverageSampler, IndexedTranslationDataset
 from .data import normalize_source, split_group_indices
+from .typo import TypoGenerator
 
 TRAINING_STATE_VERSION = 2
 
@@ -70,6 +71,9 @@ def train_model(
     on_epoch: Callable[[EpochMetrics], None] | None = None,
     *,
     source_groups: Sequence[str] | None = None,
+    source_texts: Sequence[str] | None = None,
+    source_tokenizer=None,
+    source_typo_generator: TypoGenerator | None = None,
 ) -> list[EpochMetrics]:
     """Train with grouped validation, full epoch coverage, and early stopping.
 
@@ -80,7 +84,12 @@ def train_model(
     _validate_config(config)
     seed_everything(config.seed)
     dataset = TranslationDataset(
-        sources, targets, source_vocabulary, target_vocabulary
+        sources,
+        targets,
+        source_vocabulary,
+        target_vocabulary,
+        source_texts=source_texts,
+        source_tokenizer=source_tokenizer,
     )
     if len(dataset) < 2:
         raise ValueError("training requires at least two aligned examples")
@@ -88,13 +97,22 @@ def train_model(
         raise ValueError("source_groups must contain one raw source per example")
 
     if source_groups is None:
-        source_groups = ["".join(tokens) for tokens in sources]
+        source_groups = source_texts or ["".join(tokens) for tokens in sources]
     group_keys = [normalize_source(source) for source in source_groups]
     training_indices, validation_indices = split_group_indices(
         group_keys, config.validation_fraction, config.seed,
     )
     generator = torch.Generator().manual_seed(config.seed)
-    training_data = Subset(dataset, training_indices)
+    training_dataset = TranslationDataset(
+        sources,
+        targets,
+        source_vocabulary,
+        target_vocabulary,
+        source_texts=source_texts,
+        source_tokenizer=source_tokenizer,
+        source_typo_generator=source_typo_generator,
+    )
+    training_data = Subset(training_dataset, training_indices)
     validation_data = Subset(dataset, validation_indices)
     training_loader = DataLoader(
         training_data,
@@ -443,6 +461,7 @@ def _indexed_dataset(dataset):
         dataset.source_vocabulary, dataset.target_vocabulary,
         partition=dataset.partition, validation_fraction=dataset.validation_fraction,
         test_fraction=dataset.test_fraction, seed=dataset.seed,
+        source_typo_generator=getattr(dataset, "source_typo_generator", None),
     )
 
 

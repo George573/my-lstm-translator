@@ -13,6 +13,7 @@ dependencies = [
     "sacrebleu>=2.4,<3.0",
     "torch>=2.0",
     "tqdm>=4.66,<5.0",
+    "augly>=0.2,<0.3",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +22,9 @@ notebooks = [
     "nbformat>=5.9,<6.0",
     "pandas>=2.0,<4.0",
     "plotly>=5.20,<7.0",
+]
+augmentation = [
+    "nlpaug>=1.1,<2.0",
 ]
 dev = [
     "lstm-translator[notebooks]",

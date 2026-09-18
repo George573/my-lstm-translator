@@ -11,6 +11,7 @@ from torch.utils.data import IterableDataset, get_worker_info
 from .data import Partition, iter_parallel_rows, parallel_partition
 from .model import EOS_INDEX, SOS_INDEX, Vocabulary
 from .tokenizer import BPETokenizer
+from .typo import TypoGenerator
 
 
 class StreamingTranslationDataset(IterableDataset[tuple[Tensor, Tensor]]):
@@ -33,6 +34,7 @@ class StreamingTranslationDataset(IterableDataset[tuple[Tensor, Tensor]]):
         test_fraction: float = 0.01,
         seed: int = 42,
         shuffle_buffer_size: int = 10_000,
+        source_typo_generator: TypoGenerator | None = None,
     ) -> None:
         super().__init__()
         if shuffle_buffer_size < 1:
@@ -54,6 +56,7 @@ class StreamingTranslationDataset(IterableDataset[tuple[Tensor, Tensor]]):
         self.test_fraction = test_fraction
         self.seed = seed
         self.shuffle_buffer_size = shuffle_buffer_size
+        self.source_typo_generator = source_typo_generator
         self.epoch = 0
 
     def set_epoch(self, epoch: int) -> None:
@@ -95,6 +98,8 @@ class StreamingTranslationDataset(IterableDataset[tuple[Tensor, Tensor]]):
                 seed=self.seed,
             ) != self.partition:
                 continue
+            if self.source_typo_generator is not None:
+                source = self.source_typo_generator(source)
             source_tokens = self.source_tokenizer.encode(source)
             target_tokens = self.target_tokenizer.encode(target)
             source_indices = self.source_vocabulary.encode(source_tokens) + [EOS_INDEX]

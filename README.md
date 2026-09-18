@@ -19,6 +19,7 @@ providing a production-ready translation service.
   gradient clipping, checkpointing, and early stopping.
 - Self-contained checkpoints and a high-level text translation interface.
 - BLEU and chrF evaluation on held-out sentence pairs.
+- Optional runtime source typo augmentation backed by AugLy (or nlpaug).
 - An English-French sentence-pair corpus. Train the model notebook to create a
   compatible checkpoint locally.
 
@@ -213,7 +214,17 @@ python scripts/train.py --device cuda --batch-size 64
 python scripts/train.py --data-workers 4 --epochs 2
 python scripts/train.py --progress
 python scripts/train.py --checkpoint artifacts/checkpoints/experiment-01.pth
+python scripts/train.py --source-typo-probability 0.23
 ```
+
+Source typo augmentation defaults to a 23% sentence-level probability and uses
+AugLy. It runs only in training lookups, before BPE tokenization; targets,
+validation records and test records stay clean. Use
+`--source-typo-probability 0` or `--source-typo-backend none` to disable it.
+The internal typo count scales with sentence length using a 1.5% per-character
+rate and a zero-truncated Poisson sample, with a defensive cap of
+`max(3, 5% of alphabetic characters)`. `nlpaug` is available as an alternative backend. No
+corrupted samples are cached or written to disk.
 
 The script:
 
@@ -343,8 +354,8 @@ accepts `--input`, `--output`, `--models`, `--seed` and `--samples`.
 ## Notebook workflow
 
 1. Create and activate the environment described above.
-2. Open `notebooks/train_tokenizers.ipynb` to train new tokenizers, or use the
-   included JSON tokenizer files.
+2. Use the included JSON tokenizer files, or open
+   `notebooks/train_tokenizers.ipynb` when creating a new tokenizer corpus.
 3. Open `notebooks/train_model.ipynb` and run its cells. The notebook uses the
    package implementation rather than maintaining a second model copy.
 4. The best validation checkpoint is written to
@@ -398,13 +409,12 @@ information is separate from the software license in this repository.
 - This is an educational experiment and has not been benchmarked as a
   production translation system.
 - Inference currently uses greedy decoding rather than beam search.
-- The included tokenizer artifacts were trained by the earlier word-only
-  splitter. Retrain them with `train_tokenizers.ipynb` to learn punctuation
-  tokens with the current tokenizer. Existing tokenizer files retain their old
-  text processing behavior when loaded or saved again. New tokenizers normalize
-  Unicode to NFC and preserve underscores; version 3 stores the processing
-  version explicitly. Retraining a tokenizer requires training a matching model
-  with its new vocabulary; do not swap it into an existing checkpoint.
+- The included tokenizer artifacts use the current version 3 format and text
+  processing rules, including Unicode NFC normalization and punctuation-aware
+  splitting. They can be loaded directly; retrain them only when changing the
+  training corpus or tokenizer settings. A tokenizer retrain requires training
+  a matching model with its new vocabulary; do not swap it into an existing
+  checkpoint.
 - Exact reproducibility can still vary across PyTorch versions and GPU
   architectures.
 

@@ -20,6 +20,7 @@ from .model import (
 from .tokenizer import BPETokenizer
 from .streaming import StreamingTranslationDataset
 from .indexed import CoverageSampler, IndexedTranslationDataset
+from .typo import TypoGenerator
 from .training import EpochMetrics, TrainingConfig, seed_everything, train_model, train_streaming_model
 
 __all__ = [
@@ -47,4 +48,5 @@ __all__ = [
     "train_model",
     "train_streaming_model",
     "translation_scores",
+    "TypoGenerator",
 ]

@@ -8,6 +8,8 @@ from torch import Tensor, nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import Dataset
 
+from .typo import TypoGenerator
+
 PAD_INDEX = 0
 SOS_INDEX = 1
 EOS_INDEX = 2
@@ -46,7 +48,7 @@ class Vocabulary:
 
 
 class TranslationDataset(Dataset[tuple[Tensor, Tensor]]):
-    """Turn aligned BPE sequences into source and decoder-target tensors."""
+    """Turn aligned sequences into tensors, optionally corrupting raw sources."""
 
     def __init__(
         self,
@@ -54,6 +56,10 @@ class TranslationDataset(Dataset[tuple[Tensor, Tensor]]):
         targets: Sequence[Sequence[str]],
         source_vocabulary: Vocabulary,
         target_vocabulary: Vocabulary,
+        *,
+        source_texts: Sequence[str] | None = None,
+        source_tokenizer=None,
+        source_typo_generator: TypoGenerator | None = None,
     ) -> None:
         if len(sources) != len(targets):
             raise ValueError("sources and targets must contain the same number of rows")
@@ -61,12 +67,28 @@ class TranslationDataset(Dataset[tuple[Tensor, Tensor]]):
         self.targets = targets
         self.source_vocabulary = source_vocabulary
         self.target_vocabulary = target_vocabulary
+        if source_texts is not None and len(source_texts) != len(sources):
+            raise ValueError("source_texts must contain one raw source per row")
+        if source_typo_generator is not None and source_texts is None:
+            raise ValueError("source_texts are required for source typo augmentation")
+        if source_texts is not None and source_tokenizer is None:
+            raise ValueError("source_tokenizer is required for raw source texts")
+        self.source_texts = source_texts
+        self.source_tokenizer = source_tokenizer
+        self.source_typo_generator = source_typo_generator
 
     def __len__(self) -> int:
         return len(self.sources)
 
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
-        source = self.source_vocabulary.encode(self.sources[index]) + [EOS_INDEX]
+        if self.source_texts is None:
+            source_tokens = self.sources[index]
+        else:
+            source_text = self.source_texts[index]
+            if self.source_typo_generator is not None:
+                source_text = self.source_typo_generator(source_text)
+            source_tokens = self.source_tokenizer.encode(source_text)
+        source = self.source_vocabulary.encode(source_tokens) + [EOS_INDEX]
         target = [SOS_INDEX, *self.target_vocabulary.encode(self.targets[index]), EOS_INDEX]
         return torch.tensor(source, dtype=torch.long), torch.tensor(target, dtype=torch.long)
 

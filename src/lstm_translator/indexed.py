@@ -16,6 +16,7 @@ from torch.utils.data import Dataset, Sampler
 
 from .data import _parse_parallel_line, parallel_partition
 from .model import EOS_INDEX, SOS_INDEX
+from .typo import TypoGenerator
 
 
 class IndexedTranslationDataset(Dataset):
@@ -23,7 +24,8 @@ class IndexedTranslationDataset(Dataset):
 
     def __init__(self, path, source_tokenizer, target_tokenizer, source_vocabulary,
                  target_vocabulary, *, partition="train", validation_fraction=0.01,
-                 test_fraction=0.01, seed=42, index_dir=None):
+                 test_fraction=0.01, seed=42, index_dir=None,
+                 source_typo_generator: TypoGenerator | None = None):
         if partition not in {"train", "validation", "test"}:
             raise ValueError("partition must be train, validation, or test")
         parallel_partition("", "", validation_fraction=validation_fraction,
@@ -31,6 +33,7 @@ class IndexedTranslationDataset(Dataset):
         self.path = Path(path).resolve()
         self.source_tokenizer, self.target_tokenizer = source_tokenizer, target_tokenizer
         self.source_vocabulary, self.target_vocabulary = source_vocabulary, target_vocabulary
+        self.source_typo_generator = source_typo_generator
         self.partition, self.seed = partition, seed
         stat = self.path.stat()
         identity = dict(version=2, partition_scheme="normalized-source-v1",
@@ -107,6 +110,8 @@ class IndexedTranslationDataset(Dataset):
 
     def __getitem__(self, index):
         source, target = self.raw_pair(index)
+        if self.source_typo_generator is not None:
+            source = self.source_typo_generator(source)
         source_ids = self.source_vocabulary.encode(self.source_tokenizer.encode(source))
         target_ids = self.target_vocabulary.encode(self.target_tokenizer.encode(target))
         return (torch.tensor(source_ids + [EOS_INDEX], dtype=torch.long),

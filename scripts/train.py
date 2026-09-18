@@ -26,6 +26,7 @@ from lstm_translator import (
     seed_everything,
     train_streaming_model,
     translation_scores,
+    TypoGenerator,
 )
 
 from lstm_translator.cli import (
@@ -66,6 +67,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--test-fraction", type=fraction, default=0.01)
     parser.add_argument("--evaluation-size", type=non_negative_int, default=100)
     parser.add_argument("--data-workers", type=non_negative_int, default=0)
+    parser.add_argument("--source-typo-probability", type=probability, default=0.23,
+                        help="probability of dynamically corrupting each training source sentence")
+    parser.add_argument("--source-typo-backend", choices=("augly", "nlpaug", "none"), default="augly")
     parser.add_argument("--index-dir", type=Path, help="record-index cache directory")
     initialization = parser.add_mutually_exclusive_group()
     initialization.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
@@ -163,7 +167,12 @@ def main(argv: list[str] | None = None) -> int:
             "index_dir": args.index_dir,
         }
         training_data = IndexedTranslationDataset(
-            **dataset_arguments, partition="train"
+            **dataset_arguments,
+            partition="train",
+            source_typo_generator=(TypoGenerator(
+                backend=args.source_typo_backend,
+                corruption_probability=args.source_typo_probability,
+            ) if args.source_typo_probability and args.source_typo_backend != "none" else None),
         )
         validation_data = IndexedTranslationDataset(
             **dataset_arguments, partition="validation"
@@ -213,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
                     "training_config": asdict(training_config),
                     "loss_aggregation": "non-padding-token-mean",
                     "validation_teacher_forcing": "training",
+                    "source_typo_probability": args.source_typo_probability,
+                    "source_typo_backend": args.source_typo_backend,
                     "partition_scheme": "normalized-source-v1",
                 },
             )
@@ -238,6 +249,8 @@ def main(argv: list[str] | None = None) -> int:
                     "training_config": asdict(training_config),
                     "loss_aggregation": "non-padding-token-mean",
                     "validation_teacher_forcing": "training",
+                    "source_typo_probability": args.source_typo_probability,
+                    "source_typo_backend": args.source_typo_backend,
                     "partition_scheme": "normalized-source-v1",
                 },
                 training_state=state,

@@ -13,17 +13,11 @@ import torch
 from torch.utils.data import DataLoader
 
 from lstm_translator import BPETokenizer, IndexedTranslationDataset, Vocabulary
+from lstm_translator.cli import positive_int
 from lstm_translator.indexed import CoverageSampler
 from lstm_translator.model import collate_translation_batch
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def positive_int(value):
-    number = int(value)
-    if number < 1:
-        raise argparse.ArgumentTypeError("must be positive")
-    return number
 
 
 def measure_loader(dataset, indices, batch_size, workers, warmup):

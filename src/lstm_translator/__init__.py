@@ -20,7 +20,7 @@ from .model import (
 from .tokenizer import BPETokenizer
 from .streaming import StreamingTranslationDataset
 from .indexed import CoverageSampler, IndexedTranslationDataset
-from .training import EpochMetrics, TrainingConfig, train_model, train_streaming_model
+from .training import EpochMetrics, TrainingConfig, seed_everything, train_model, train_streaming_model
 
 __all__ = [
     "BPETokenizer",
@@ -41,6 +41,7 @@ __all__ = [
     "load_parallel_csv",
     "load_parallel_tsv",
     "save_checkpoint",
+    "seed_everything",
     "parallel_partition",
     "split_parallel",
     "train_model",

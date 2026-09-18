@@ -23,8 +23,14 @@ from lstm_translator import (
     Vocabulary,
     save_checkpoint,
     load_checkpoint,
+    seed_everything,
     train_streaming_model,
     translation_scores,
+)
+
+from lstm_translator.cli import (
+    fraction, non_negative_float, non_negative_int,
+    positive_float, positive_int, probability,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -60,14 +66,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--test-fraction", type=fraction, default=0.01)
     parser.add_argument("--evaluation-size", type=non_negative_int, default=100)
     parser.add_argument("--data-workers", type=non_negative_int, default=0)
-    parser.add_argument("--shuffle-buffer", type=positive_int, default=10_000,
-                        help="deprecated; indexed training uses a global permutation")
     parser.add_argument("--index-dir", type=Path, help="record-index cache directory")
-    parser.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
+    initialization = parser.add_mutually_exclusive_group()
+    initialization.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
+    initialization.add_argument("--init-checkpoint", type=Path,
+                                help="load model and tokenizers, starting fresh optimizer and training counters; model flags are ignored")
     parser.add_argument("--reset-patience", action="store_true",
                         help="reset the early-stopping counter on resume; keep the best validation loss")
     parser.add_argument("--resume-tf-decay-epochs", type=positive_int,
-                        help="on resume, decay from saved teacher forcing to its configured end over this many logged epochs")
+                        help="on resume, decay from saved teacher forcing to --teacher-forcing-end (which may change) over this many logged epochs")
     parser.add_argument("--validation-steps", type=positive_int, default=1_000)
     parser.add_argument(
         "--steps-per-epoch",
@@ -129,10 +136,13 @@ def main(argv: list[str] | None = None) -> int:
         _require_files(args.data)
         print(f"Device: {device}")
         print(f"Indexing corpus (or reusing cached offsets) from {args.data}")
-        restored = load_checkpoint(args.resume, "cpu") if args.resume else None
+        initial_checkpoint = args.resume or args.init_checkpoint
+        restored = load_checkpoint(initial_checkpoint, "cpu") if initial_checkpoint else None
         if restored is not None:
-            if restored.training_state is None:
+            if args.resume and restored.training_state is None:
                 raise ValueError("checkpoint has no resumable training state; use a new .latest checkpoint")
+            if args.init_checkpoint:
+                restored.training_state = None
             source_tokenizer, target_tokenizer = restored.source_tokenizer, restored.target_tokenizer
             source_vocabulary, target_vocabulary = restored.source_vocabulary, restored.target_vocabulary
         else:
@@ -179,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             show_progress=args.show_progress,
         )
-        torch.manual_seed(args.seed)
+        seed_everything(args.seed)
         model = restored.model.to(device) if restored else Seq2Seq(
             len(source_vocabulary), len(target_vocabulary), model_config
         ).to(device)
@@ -201,6 +211,8 @@ def main(argv: list[str] | None = None) -> int:
                     "validation_loss": metrics.validation_loss,
                     "model_config": asdict(model_config),
                     "training_config": asdict(training_config),
+                    "loss_aggregation": "non-padding-token-mean",
+                    "partition_scheme": "normalized-source-v1",
                 },
             )
             print(f"  Saved improved checkpoint to {args.checkpoint}")
@@ -223,6 +235,8 @@ def main(argv: list[str] | None = None) -> int:
                     "incomplete": True,
                     "model_config": asdict(model_config),
                     "training_config": asdict(training_config),
+                    "loss_aggregation": "non-padding-token-mean",
+                    "partition_scheme": "normalized-source-v1",
                 },
                 training_state=state,
             )
@@ -316,48 +330,6 @@ def _require_files(*paths: Path) -> None:
     for path in paths:
         if not path.is_file():
             raise FileNotFoundError(f"required file not found: {path}")
-
-
-def positive_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 1:
-        raise argparse.ArgumentTypeError("must be positive")
-    return parsed
-
-
-def non_negative_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("cannot be negative")
-    return parsed
-
-
-def positive_float(value: str) -> float:
-    parsed = float(value)
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("must be positive")
-    return parsed
-
-
-def non_negative_float(value: str) -> float:
-    parsed = float(value)
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("cannot be negative")
-    return parsed
-
-
-def probability(value: str) -> float:
-    parsed = float(value)
-    if not 0 <= parsed <= 1:
-        raise argparse.ArgumentTypeError("must be in [0, 1]")
-    return parsed
-
-
-def fraction(value: str) -> float:
-    parsed = float(value)
-    if not 0 < parsed < 1:
-        raise argparse.ArgumentTypeError("must be in (0, 1)")
-    return parsed
 
 
 def format_duration(seconds: float) -> str:

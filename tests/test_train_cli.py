@@ -7,7 +7,7 @@ import pytest
 from lstm_translator import BPETokenizer, load_checkpoint
 
 
-def test_cli_checkpoint_roundtrip_continues_coverage(tmp_path):
+def test_cli_checkpoint_roundtrip_continues_coverage(tmp_path, capsys):
     torch.set_num_threads(1)
     main = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/train.py"))["main"]
     corpus = tmp_path / "pairs.tsv"
@@ -35,6 +35,19 @@ def test_cli_checkpoint_roundtrip_continues_coverage(tmp_path):
     assert resumed.training_state["sampler"]["cursor"] == 16
     assert resumed.training_state["sampler"]["cycle"] == 0
     assert resumed.training_state["global_step"] == 4
+
+    assert main([*args, "--epochs", "3", "--resume", str(latest),
+                 "--batch-size", "8"]) == 1
+    assert "batch_size: checkpoint=4, current=8" in capsys.readouterr().err
+
+    copied_corpus = tmp_path / "copied.tsv"
+    copied_corpus.write_bytes(corpus.read_bytes())
+    assert main([*args, "--epochs", "3", "--resume", str(latest),
+                 "--data", str(copied_corpus)]) == 1
+    error = capsys.readouterr().err
+    assert "corpus fingerprint differs" in error
+    assert "absolute path" in error
+    assert "batch_size:" not in error
 
 
 @pytest.mark.parametrize("reset", [False, True])
@@ -78,3 +91,11 @@ def test_resume_options_require_resume(flags):
     main = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/train.py"))["main"]
     with pytest.raises(SystemExit, match="2"):
         main(flags)
+
+
+@pytest.mark.parametrize("flag", ["--learning-rate", "--gradient-clip", "--min-delta"])
+@pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
+def test_cli_rejects_nonfinite_values(flag, value):
+    parser = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/train.py"))["build_parser"]()
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args([f"{flag}={value}"])

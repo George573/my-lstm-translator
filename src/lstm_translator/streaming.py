@@ -2,7 +2,7 @@
 
 from pathlib import Path
 import random
-from typing import Iterator
+from collections.abc import Iterator
 
 import torch
 from torch import Tensor

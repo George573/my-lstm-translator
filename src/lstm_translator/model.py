@@ -1,7 +1,7 @@
 """Bidirectional LSTM encoder-decoder used by the translation notebooks."""
 
 from dataclasses import dataclass
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 import torch
 from torch import Tensor, nn
@@ -164,7 +164,6 @@ class Decoder(nn.Module):
     def __init__(self, vocabulary_size: int, config: Seq2SeqConfig) -> None:
         super().__init__()
         decoder_hidden_size = config.hidden_size * 2
-        self.use_attention = config.attention
         self.attention = AdditiveAttention(decoder_hidden_size) if config.attention else None
         self.embedding = nn.Embedding(vocabulary_size, config.embedding_dim, padding_idx=PAD_INDEX)
         self.lstm = nn.LSTM(

@@ -10,16 +10,10 @@ import sys
 
 from tqdm import tqdm
 
+from lstm_translator.cli import positive_int
 from lstm_translator.tokenizer import BPETokenizer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-
-def positive_int(value: str) -> int:
-    number = int(value)
-    if number <= 0:
-        raise argparse.ArgumentTypeError("must be a positive integer")
-    return number
 
 
 def main(argv: list[str] | None = None) -> int:

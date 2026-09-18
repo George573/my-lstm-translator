@@ -14,7 +14,8 @@ from lstm_translator.data import iter_parallel_rows, parallel_partition
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-def test_resumed_teacher_forcing_schedule_is_continuous_and_persisted(tmp_path, legacy):
+@pytest.mark.parametrize("endpoint", [0.2, 0.0])
+def test_resumed_teacher_forcing_schedule_is_continuous_and_persisted(tmp_path, legacy, endpoint):
     torch.set_num_threads(1)
     path = tmp_path / "pairs.tsv"
     path.write_text("".join(f"{i}\t{i}\n" for i in range(11)))
@@ -40,18 +41,25 @@ def test_resumed_teacher_forcing_schedule_is_continuous_and_persisted(tmp_path, 
     model.load_state_dict(weights)
     saved.clear()
     ratios.clear()
-    train_streaming_model(model, data, data, replace(config, epochs=5),
+    resumed_config = replace(config, epochs=5, teacher_forcing_end=endpoint)
+    if endpoint != config.teacher_forcing_end:
+        with pytest.raises(ValueError, match="use --resume-tf-decay-epochs"):
+            train_streaming_model(model, data, data, resumed_config,
+                                 resume_state=state, **options)
+    train_streaming_model(model, data, data, resumed_config,
                          resume_state=state, resume_tf_decay_epochs=1, **options)
     assert ratios[0] == state["teacher_forcing_ratio"]
-    assert ratios[-1] == pytest.approx(0.2)
+    assert ratios[-1] == pytest.approx(endpoint)
     assert all(a >= b for a, b in zip(ratios, ratios[1:]))
     expected_weights = deepcopy(model.state_dict())
     expected_history = saved[-1][1]["history"]
     weights, interrupted = saved[0]
     assert interrupted["teacher_forcing_schedule"]["decay_epochs"] == 1
+    assert interrupted["teacher_forcing_schedule"]["end_ratio"] == endpoint
+    assert interrupted["settings"]["teacher_forcing_end"] == endpoint
     model.load_state_dict(weights)
     saved.clear()
-    train_streaming_model(model, data, data, replace(config, epochs=5),
+    train_streaming_model(model, data, data, resumed_config,
                          resume_state=interrupted, **options)
     assert saved[-1][1]["history"] == expected_history
     for key, value in expected_weights.items():
@@ -194,3 +202,60 @@ def test_training_resume_matches_uninterrupted_updates(tmp_path, stop_step):
     # Completed intervals advance the same pass instead of reshuffling it.
     ends = [state["sampler"] for _, state in captured if state["interval_steps"] == 0]
     assert [(state["cycle"], state["cursor"]) for state in ends] == [(0, 8), (0, 11), (1, 8), (1, 11)]
+
+
+@pytest.mark.parametrize("stop_step", [1, 2, 3])
+def test_variable_length_resume_preserves_token_totals(tmp_path, stop_step):
+    torch.set_num_threads(1)
+    path = tmp_path / "variable.tsv"
+    path.write_text("".join(f"{i}\t{' '.join([str(i)] * (i % 4 + 1))}\n" for i in range(11)))
+    data = dataset(path)
+    config = TrainingConfig(epochs=3, batch_size=4, patience=20)
+    torch.manual_seed(10)
+    model = Seq2Seq(len(data.source_vocabulary), len(data.target_vocabulary),
+                   Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3))
+    captured = []
+    losses, tokens = [], []
+    original = torch.nn.CrossEntropyLoss.forward
+    from unittest.mock import patch
+    def capture_loss(criterion, predictions, target):
+        loss = original(criterion, predictions, target)
+        if model.training:
+            losses.append(loss.item())
+            tokens.append(target.ne(0).sum().item())
+        return loss
+    def save(current, state):
+        captured.append((deepcopy(current.state_dict()), deepcopy(state)))
+    with patch.object(torch.nn.CrossEntropyLoss, "forward", capture_loss):
+        expected = train_streaming_model(model, data, data, config, steps_per_epoch=2,
+                                        checkpoint_interval_steps=1, on_training_checkpoint=save)
+    assert expected[0].train_loss == pytest.approx(
+        sum(loss * count for loss, count in zip(losses[:2], tokens[:2])) / sum(tokens[:2]))
+    expected_weights = deepcopy(model.state_dict())
+    weights, state = next((weights, state) for weights, state in captured
+                          if state["global_step"] == stop_step and state["interval_steps"] > 0)
+    assert state["interval_tokens"] > 0
+    model.load_state_dict(weights)
+    actual = train_streaming_model(model, data, data, config, steps_per_epoch=2,
+                                   checkpoint_interval_steps=1, resume_state=state)
+    assert actual == expected
+    for name, value in expected_weights.items():
+        assert torch.equal(model.state_dict()[name], value)
+
+
+def test_old_training_state_is_rejected_before_data_access():
+    with pytest.raises(ValueError, match="--init-checkpoint"):
+        train_streaming_model(None, None, None, resume_state={"epoch": 1})
+
+
+def test_index_cache_version_and_source_groups(tmp_path):
+    import json
+    path = tmp_path / "pairs.tsv"
+    path.write_text("Cafe\u0301 noir\ta\n CAFÉ  NOIR \tb\nother\tc\n", encoding="utf-8")
+    for partition in ("train", "validation", "test"):
+        data = IndexedTranslationDataset(path, Words(), Words(), Vocabulary(), Vocabulary(),
+                                         partition=partition, validation_fraction=0.3, test_fraction=0.3)
+        pairs = [data.raw_pair(i) for i in range(len(data))]
+        assert sum(target in {"a", "b"} for _, target in pairs) in {0, 2}
+        metadata = json.loads((data.offset_path.parent / f"{data.fingerprint}.json").read_text())
+        assert metadata["counts"][partition] == len(pairs)

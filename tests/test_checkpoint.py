@@ -48,3 +48,36 @@ def test_legacy_weights_only_checkpoint_is_rejected(tmp_path):
 
     with pytest.raises(ValueError, match="legacy weights-only"):
         load_checkpoint(path)
+
+
+def test_checkpoint_does_not_retry_unrestricted_loading(monkeypatch):
+    calls = []
+    def fail(*args, **kwargs):
+        calls.append(kwargs)
+        raise TypeError("invalid payload")
+    monkeypatch.setattr(torch, "load", fail)
+    with pytest.raises(TypeError, match="invalid payload"):
+        load_checkpoint("unused.pth")
+    assert len(calls) == 1
+    assert calls[0]["weights_only"] is True
+
+
+def test_translator_loads_on_cpu_and_discards_training_state(monkeypatch):
+    from lstm_translator import LoadedCheckpoint, Translator
+    tokenizer = BPETokenizer()
+    vocabulary = Vocabulary()
+    model = Seq2Seq(4, 4, Seq2SeqConfig(hidden_size=2, num_layers=1, embedding_dim=2))
+    bundle = LoadedCheckpoint(model, vocabulary, vocabulary, tokenizer, tokenizer, {}, {"optimizer": "large"})
+    loads, moves = [], []
+    def load(path, device):
+        loads.append(device)
+        return bundle
+    def move(device):
+        assert bundle.training_state is None
+        moves.append(str(device))
+        return model
+    monkeypatch.setattr("lstm_translator.inference.load_checkpoint", load)
+    monkeypatch.setattr(model, "to", move)
+    Translator.from_checkpoint("unused.pth", "cuda")
+    assert loads == ["cpu"]
+    assert moves == ["cuda"]

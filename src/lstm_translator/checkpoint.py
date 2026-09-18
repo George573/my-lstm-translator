@@ -3,7 +3,8 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import tempfile
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import torch
 
@@ -64,10 +65,7 @@ def load_checkpoint(
     device: str | torch.device = "cpu",
 ) -> LoadedCheckpoint:
     """Load a v1 checkpoint without relying on Python pickle classes."""
-    try:
-        payload = torch.load(path, map_location=device, weights_only=True)
-    except TypeError:  # PyTorch 2.0 compatibility
-        payload = torch.load(path, map_location=device)
+    payload = torch.load(path, map_location=device, weights_only=True)
     if not isinstance(payload, dict) or payload.get("checkpoint_version") != CHECKPOINT_VERSION:
         raise ValueError(
             "This is a legacy weights-only checkpoint. Retrain or migrate it with "

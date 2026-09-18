@@ -33,7 +33,8 @@ class IndexedTranslationDataset(Dataset):
         self.source_vocabulary, self.target_vocabulary = source_vocabulary, target_vocabulary
         self.partition, self.seed = partition, seed
         stat = self.path.stat()
-        identity = dict(version=1, path=str(self.path), size=stat.st_size,
+        identity = dict(version=2, partition_scheme="normalized-source-v1",
+                        path=str(self.path), size=stat.st_size,
                         mtime_ns=stat.st_mtime_ns, ctime_ns=stat.st_ctime_ns,
                         validation_fraction=validation_fraction,
                         test_fraction=test_fraction, seed=seed)

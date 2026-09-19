@@ -29,6 +29,8 @@ from lstm_translator import (
     TypoGenerator,
 )
 
+from lstm_translator.diagnostics import DebugLogger, tokenizer_info
+
 from lstm_translator.cli import (
     fraction, non_negative_float, non_negative_int,
     positive_float, positive_int, probability,
@@ -66,6 +68,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--test-fraction", type=fraction, default=0.01)
     parser.add_argument("--evaluation-size", type=non_negative_int, default=100)
+    parser.add_argument("--debug-memory", action="store_true",
+                        help="log synchronized memory and sequence diagnostics for initial training batches")
+    parser.add_argument("--debug-batches", type=positive_int, default=3)
+    parser.add_argument("--debug-log", type=Path,
+                        help="append diagnostics as JSONL to this file; enables --debug-memory")
     parser.add_argument("--data-workers", type=non_negative_int, default=0)
     parser.add_argument("--source-typo-probability", type=probability, default=0.23,
                         help="probability of dynamically corrupting each training source sentence")
@@ -205,6 +212,27 @@ def main(argv: list[str] | None = None) -> int:
         model_config = model.config
         print(f"Parameters: {sum(parameter.numel() for parameter in model.parameters()):,}")
 
+        debug_logger = DebugLogger(args.debug_log) if args.debug_memory or args.debug_log else None
+        if debug_logger:
+            debug_logger(dict(
+                event="run", torch_version=torch.__version__, cuda_version=torch.version.cuda,
+                cudnn_version=torch.backends.cudnn.version(), device=str(device),
+                gpu_name=torch.cuda.get_device_name(device) if device.type == "cuda" else None,
+                model=asdict(model_config), parameters=sum(p.numel() for p in model.parameters()),
+                dtype=str(next(model.parameters()).dtype), batch_size=args.batch_size,
+                teacher_forcing_start=args.teacher_forcing_start,
+                source_typo_backend=args.source_typo_backend,
+                source_typo_probability=args.source_typo_probability,
+                augmentation_enabled=training_data.source_typo_generator is not None,
+                source_tokenizer=tokenizer_info(source_tokenizer),
+                target_tokenizer=tokenizer_info(target_tokenizer),
+                tokenizer_origin=str(initial_checkpoint) if initial_checkpoint else
+                    [str(args.source_tokenizer), str(args.target_tokenizer)],
+                data=str(args.data), corpus_fingerprint=training_data.fingerprint,
+                cudnn_deterministic=torch.backends.cudnn.deterministic,
+                cudnn_benchmark=torch.backends.cudnn.benchmark,
+            ))
+
         started_at = time.monotonic()
 
         def save_best(current_model, metrics) -> None:
@@ -277,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
             validation_data,
             training_config,
             num_workers=args.data_workers,
+            debug_logger=debug_logger,
+            debug_batches=args.debug_batches,
             validation_steps=args.validation_steps,
             steps_per_epoch=args.steps_per_epoch or None,
             checkpoint_interval_steps=args.checkpoint_interval,

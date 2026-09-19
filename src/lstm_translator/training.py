@@ -22,6 +22,7 @@ from .streaming import StreamingTranslationDataset
 from .indexed import CoverageSampler, IndexedTranslationDataset
 from .data import normalize_source, split_group_indices
 from .typo import TypoGenerator
+from .diagnostics import BatchDiagnostics
 
 TRAINING_STATE_VERSION = 2
 
@@ -201,6 +202,8 @@ def train_streaming_model(
     reset_patience: bool = False,
     resume_tf_decay_epochs: int | None = None,
     on_training_checkpoint: Callable[[Seq2Seq, dict], None] | None = None,
+    debug_logger: Callable[[dict], None] | None = None,
+    debug_batches: int = 3,
 ) -> list[EpochMetrics]:
     """Train consecutive intervals of a global permutation without replacement.
 
@@ -221,6 +224,8 @@ def train_streaming_model(
         if resume_tf_decay_epochs < 1:
             raise ValueError("resume_tf_decay_epochs must be positive")
     _validate_config(config)
+    if debug_batches < 1:
+        raise ValueError("debug_batches must be positive")
     if num_workers < 0:
         raise ValueError("num_workers cannot be negative")
     if validation_steps is not None and validation_steps < 1:
@@ -343,6 +348,7 @@ def train_streaming_model(
                 mps_rng=torch.mps.get_rng_state() if device.type == "mps" else None,
             ))
 
+    initial_global_step = global_step
     for epoch in range(start_epoch, config.epochs + 1):
         if stale_epochs >= config.patience:
             break
@@ -375,6 +381,9 @@ def train_streaming_model(
             value, tokens = _train_batch(
                 model, source, target, lengths, criterion, optimizer,
                 device, ratio, config.gradient_clip,
+                diagnostics=(BatchDiagnostics(debug_logger, device, global_step + 1)
+                             if debug_logger is not None and global_step - initial_global_step < debug_batches
+                             else None),
             )
             sampler.commit(source.size(0))
 
@@ -466,22 +475,35 @@ def _indexed_dataset(dataset):
 
 
 def _train_batch(model, source, target, lengths, criterion, optimizer,
-                 device, teacher_forcing_ratio, gradient_clip) -> tuple[float, int]:
+                 device, teacher_forcing_ratio, gradient_clip, *, diagnostics=None) -> tuple[float, int]:
     """Update weights once and return mean token loss plus valid-token count."""
-    source = source.to(device, non_blocking=True)
-    target = target.to(device, non_blocking=True)
-    # Packed encoder lengths stay on CPU.
-    optimizer.zero_grad(set_to_none=True)
-    predictions = model(source, target, lengths, teacher_forcing_ratio=teacher_forcing_ratio)
-    loss = criterion(
-        predictions.reshape(-1, model.target_vocabulary_size),
-        target[:, 1:].reshape(-1),
-    )
-    value, tokens = _loss_statistics(loss, target)
-    loss.backward()
-    nn.utils.clip_grad_norm_(model.parameters(), gradient_clip, error_if_nonfinite=True)
-    optimizer.step()
-    return value, tokens
+    from contextlib import nullcontext
+
+    with diagnostics.watch(model, source, target, lengths) if diagnostics else nullcontext():
+        def phase(name):
+            if diagnostics:
+                diagnostics.phase(name)
+
+        phase("transfer")
+        source = source.to(device, non_blocking=True)
+        target = target.to(device, non_blocking=True)
+        optimizer.zero_grad(set_to_none=True)
+        phase("forward")
+        predictions = model(source, target, lengths, teacher_forcing_ratio=teacher_forcing_ratio)
+        phase("loss")
+        loss = criterion(
+            predictions.reshape(-1, model.target_vocabulary_size),
+            target[:, 1:].reshape(-1),
+        )
+        value, tokens = _loss_statistics(loss, target)
+        phase("backward")
+        loss.backward()
+        phase("gradient_clip")
+        nn.utils.clip_grad_norm_(model.parameters(), gradient_clip, error_if_nonfinite=True)
+        phase("optimizer")
+        optimizer.step()
+        phase("complete")
+        return value, tokens
 
 
 def _validation_loss(model, loader, criterion, device, teacher_forcing_ratio=0.0) -> float:

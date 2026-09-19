@@ -226,6 +226,19 @@ rate and a zero-truncated Poisson sample, with a defensive cap of
 `max(3, 5% of alphabetic characters)`. `nlpaug` is available as an alternative backend. No
 corrupted samples are cached or written to disk.
 
+To diagnose GPU memory use, append `--debug-memory --debug-batches 3
+--debug-log /tmp/train-debug.jsonl` to the training command. Diagnostics print
+flushed JSON records to stderr and append them to the optional JSONL file.
+They record tokenizer fingerprints, model/runtime settings, actual batch token
+lengths and padding, counts above 127 BPE tokens (excluding special tokens),
+and allocated/reserved/peak CUDA memory. Memory is sampled at training phase
+boundaries and every 16 decoder steps; an OOM record identifies the active
+phase and decoder step before the error is re-raised. Peaks reset per traced
+batch. Tensor-size estimates are individual components, not total memory estimates.
+Tracing covers only the first requested training batches of this invocation,
+including after resume; it does not trace validation. CUDA synchronization adds
+overhead, so enable this only for diagnosis. No sentence text is logged.
+
 The script:
 
 1. Indexes valid TSV/TXT or `en`/`fr` CSV records, including multiline CSV fields.

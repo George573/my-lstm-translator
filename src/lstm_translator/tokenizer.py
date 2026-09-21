@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import json
 import heapq
+import logging
 import re
 import unicodedata
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, deque
 from concurrent.futures import ProcessPoolExecutor
-from itertools import chain
+from contextlib import ExitStack
+from itertools import chain, islice
 from pathlib import Path
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sized
 
 from tqdm.auto import tqdm
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Module-level worker helpers
@@ -33,7 +37,134 @@ def _worker_encode(words: list[str]) -> dict[str, tuple[str, ...]]:
     """Encode a chunk of unique words inside a worker process."""
     if _worker_tok is None:
         raise RuntimeError("tokenizer worker was not initialized")
-    return {word: tuple(_worker_tok.encode_word(word)) for word in words}
+    return {word: _worker_tok._encode_word_tuple(word) for word in words}
+
+
+def _worker_extract(texts: list[str]) -> Counter:
+    if _worker_tok is None:
+        raise RuntimeError("tokenizer worker was not initialized")
+    return _worker_tok._extract_words(texts, show_progress=False)
+
+
+_merge_vocab: dict[str, int] = {}
+_merge_tokens: dict[str, list[str]] = {}
+_merge_index: dict[tuple[str, str], set[str]] = {}
+
+
+def _worker_merge_init(vocab: dict[str, int], word_break: str) -> None:
+    global _merge_vocab, _merge_tokens, _merge_index
+    _merge_vocab = vocab
+    _merge_tokens = {word: list(word) + [word_break] for word in vocab}
+    _merge_index = {}
+    for word, tokens in _merge_tokens.items():
+        for pair in zip(tokens, tokens[1:]):
+            holders = _merge_index.get(pair)
+            if holders is None:
+                _merge_index[pair] = {word}
+            else:
+                holders.add(word)
+
+
+def _worker_merge(pair: tuple[str, str] | None) -> dict[tuple[str, str], int]:
+    """Return initial shard counts, or the *net* count changes after a merge.
+
+    Most pairs of an affected word are subtracted and re-added unchanged; those
+    cancel out here and are dropped, which keeps the reply (IPC) small.
+    """
+    delta: dict[tuple[str, str], int] = {}
+    if pair is None:
+        for word, tokens in _merge_tokens.items():
+            freq = _merge_vocab[word]
+            for adjacent in zip(tokens, tokens[1:]):
+                delta[adjacent] = delta.get(adjacent, 0) + freq
+        return delta
+
+    index = _merge_index
+    words = index.pop(pair, None)  # popped: safe to iterate while updating the index
+    if not words:
+        return delta
+    left, right = pair
+    merged = left + right
+    for word in words:  # holder sets may be stale; the diff skips words without a match
+        result = _merge_word_diff(_merge_tokens[word], left, right, merged)
+        if result is None:
+            continue
+        tokens, removed, added = result
+        _merge_tokens[word] = tokens
+        freq = _merge_vocab[word]
+        for adjacent in removed:
+            delta[adjacent] = delta.get(adjacent, 0) - freq
+        for adjacent in added:
+            delta[adjacent] = delta.get(adjacent, 0) + freq
+            holders = index.get(adjacent)
+            if holders is None:
+                index[adjacent] = {word}
+            else:
+                holders.add(word)
+    return {adjacent: change for adjacent, change in delta.items() if change}
+
+
+def _merge_word_diff(
+    tokens: list[str], left: str, right: str, merged: str,
+) -> tuple[list[str], list[tuple[str, str]], list[tuple[str, str]]] | None:
+    """Merge ``left right`` -> ``merged`` (greedy, left to right) and report the
+    adjacent-pair occurrences that disappear and appear.
+
+    Returns None if the pair does not occur (a stale holder entry). Only pairs
+    touching a match site change: for a match at old position i these are old
+    pairs i-1, i, i+1 and, in the new list, the pairs on both sides of the merged
+    token. Indices are deduplicated so pairs shared by adjacent matches count once.
+    """
+    n = len(tokens)
+    out: list[str] = []
+    matches: list[int] = []      # old positions of matches
+    merged_at: list[int] = []    # positions of merged tokens in `out`
+    i = 0
+    while i < n:
+        if i < n - 1 and tokens[i] == left and tokens[i + 1] == right:
+            matches.append(i)
+            merged_at.append(len(out))
+            out.append(merged)
+            i += 2
+        else:
+            out.append(tokens[i])
+            i += 1
+    if not matches:
+        return None
+    removed_idx: set[int] = set()
+    for i in matches:
+        removed_idx.update((i - 1, i, i + 1))
+    last = n - 2
+    removed = [(tokens[j], tokens[j + 1]) for j in removed_idx if 0 <= j <= last]
+    added_idx: set[int] = set()
+    for k in merged_at:
+        added_idx.update((k - 1, k))
+    last_new = len(out) - 2
+    added = [(out[k], out[k + 1]) for k in added_idx if 0 <= k <= last_new]
+    return out, removed, added
+
+
+def _pop_best_pair(heap: list, counts: dict) -> tuple[str, str] | None:
+    """Pop the pair with the highest count (ties: smallest pair) from a lazy heap.
+
+    Invariant: every live pair has a heap entry whose recorded count is >= its
+    current count. Counts only *increase* for pairs containing a freshly merged
+    token, and callers push those eagerly; decreases are repaired here, when a
+    stale entry surfaces. Ordering is (-count, pair), i.e. exactly the key of the
+    former ``min(pair_counts, key=lambda p: (-pair_counts[p], p))``.
+    """
+    while heap:
+        negative, pair = heapq.heappop(heap)
+        current = counts.get(pair)
+        if current is None:
+            continue  # pair no longer exists
+        recorded = -negative
+        if current == recorded:
+            return pair
+        if current < recorded:  # count dropped since this entry was pushed
+            heapq.heappush(heap, (-current, pair))
+        # current > recorded: a fresher entry was pushed when the count rose
+    return None
 
 
 def _chunk(lst: list, n: int) -> list[list]:
@@ -48,6 +179,11 @@ def _chunk(lst: list, n: int) -> list[list]:
     return out
 
 
+# Below this many *uncached unique words per worker*, process start-up (~10 ms
+# with fork, 100+ ms with spawn) costs more than the ~7 us/word it would save.
+_MIN_WORDS_PER_WORKER = 10_000
+
+
 # ---------------------------------------------------------------------------
 # Tokenizer
 # ---------------------------------------------------------------------------
@@ -57,6 +193,20 @@ class BPETokenizer:
 
     FORMAT_VERSION = 3
 
+    # Pre-tokenisation patterns, selected by ``text_processing_version``.
+    #   1 (legacy): words and punctuation; whitespace and ``_`` are dropped.
+    #   2 (legacy): as 1 but keeps ``_``; NFC-normalised. Whitespace is dropped,
+    #               so ``decode`` can only approximate the original spacing.
+    #   3         : lossless. The matches partition the (normalised) text: one
+    #               leading space attaches to the following word/punctuation mark
+    #               (`` hello``), any other whitespace run is its own unit, and
+    #               nothing is dropped. ``decode`` is exact concatenation.
+    _PATTERNS = {
+        1: r"[^\W_]+(?:['-][^\W_]+)*'?|[^\w\s]",
+        2: r"\w+(?:['-]\w+)*'?|[^\w\s]",
+        3: r" ?(?:\w+(?:['-]\w+)*'?|[^\w\s])|\s+(?!\S)|\s+",
+    }
+
     def __init__(
         self,
         word_break: str = "</w>",
@@ -64,13 +214,13 @@ class BPETokenizer:
         *,
         lowercase: bool = False,
         max_cache_size: int = 100_000,
-        text_processing_version: int = 2,
+        text_processing_version: int = 3,
     ):
         if max_cache_size < 0:
             raise ValueError("max_cache_size cannot be negative")
         if not word_break:
             raise ValueError("word_break cannot be empty")
-        if type(text_processing_version) is not int or text_processing_version not in {1, 2}:
+        if type(text_processing_version) is not int or text_processing_version not in self._PATTERNS:
             raise ValueError("unsupported tokenizer text processing version")
         self.text_processing_version = text_processing_version
         self.word_break = word_break
@@ -82,11 +232,20 @@ class BPETokenizer:
         self._pair_to_rank: dict[tuple[str, str], int] = {}  # Built once, never during encode
         self._encode_cache: OrderedDict[str, tuple[str, ...]] = OrderedDict()
 
-        # Words and punctuation are separate units. Unlike the original regex,
-        # this does not silently discard punctuation.
-        pattern = (r"\w+(?:['-]\w+)*'?|[^\w\s]" if text_processing_version == 2
-                   else r"[^\W_]+(?:['-][^\W_]+)*'?|[^\w\s]")
+        pattern = self._PATTERNS[text_processing_version]
         self.word_pattern = re.compile(pattern, re.UNICODE)
+
+    def __getstate__(self) -> dict:
+        # The cache is a pure accelerator and can hold ~100k entries; the rank
+        # table is derived from `rules`. Neither should be pickled to workers.
+        state = self.__dict__.copy()
+        state["_encode_cache"] = OrderedDict()
+        state["_pair_to_rank"] = {}
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._build_index()
 
     @property
     def ukn_token(self) -> str:
@@ -105,15 +264,51 @@ class BPETokenizer:
         """
         self._pair_to_rank = {pair: rank for rank, pair in enumerate(self.rules)}
 
-    def _extract_words(self, texts: Iterable[str]) -> Counter:
+    def _extract_words(
+        self, texts: Iterable[str], num_workers: int = 1, chunk_size: int = 2_000,
+        *, show_progress: bool = True,
+    ) -> Counter:
         """Extract word frequencies from a corpus efficiently."""
         words: Counter = Counter()
-        for text in texts:
-            words.update(self._split(text))
+        total = len(texts) if isinstance(texts, Sized) else None
+        iterator = iter(texts)
+        with tqdm(total=total, desc="Extracting words", unit="texts",
+                  disable=not show_progress) as progress:
+            if num_workers > 1:
+                # Send only text-processing configuration, not existing rules/cache.
+                worker_tokenizer = BPETokenizer(
+                    lowercase=self.lowercase,
+                    text_processing_version=self.text_processing_version,
+                    max_cache_size=0,
+                )
+                with ProcessPoolExecutor(
+                    max_workers=num_workers, initializer=_worker_init,
+                    initargs=(worker_tokenizer,),
+                ) as pool:
+                    pending = deque()
+                    # Bound submitted work: Executor.map eagerly consumes generators
+                    # on supported Python versions before 3.14.
+                    for _ in range(2 * num_workers):
+                        chunk = list(islice(iterator, chunk_size))
+                        if not chunk:
+                            break
+                        pending.append((pool.submit(_worker_extract, chunk), len(chunk)))
+                    while pending:
+                        future, count = pending.popleft()
+                        words.update(future.result())
+                        progress.update(count)
+                        chunk = list(islice(iterator, chunk_size))
+                        if chunk:
+                            pending.append((pool.submit(_worker_extract, chunk), len(chunk)))
+                return words
+            while chunk := list(islice(iterator, chunk_size)):
+                for text in chunk:
+                    words.update(self._split(text))
+                progress.update(len(chunk))
         return words
 
     def _split(self, text: str) -> list[str]:
-        if self.text_processing_version == 2:
+        if self.text_processing_version >= 2:
             text = unicodedata.normalize("NFC", text)
         if self.lowercase:
             text = text.lower()
@@ -145,15 +340,24 @@ class BPETokenizer:
     # Training
     # ------------------------------------------------------------------
 
-    def train(self, texts: Iterable[str], n_merges: int = 4500) -> None:
-        """Train the BPE tokenizer on the provided texts."""
+    def train(
+        self, texts: Iterable[str], n_merges: int = 4500, *,
+        num_workers: int = 1, chunk_size: int = 2_000,
+    ) -> None:
+        """Train BPE with optional parallel word extraction and pair counting.
+
+        Workers are processes; merge selection and input iteration remain serial.
+        At most twice ``num_workers`` chunks are queued at a time.
+        """
         if n_merges < 0:
             raise ValueError("n_merges cannot be negative")
+        for name, value in (("num_workers", num_workers), ("chunk_size", chunk_size)):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} must be a positive integer")
         self._encode_cache.clear()
-        print("Extracting words...")
         # vocab and word_to_tokens are local training artifacts — they are
         # discarded after the merge loop so they don't linger in memory.
-        vocab: dict[str, int] = dict(self._extract_words(texts))
+        vocab: dict[str, int] = dict(self._extract_words(texts, num_workers, chunk_size))
 
         # Collect the initial character set before any merges
         initial_chars: set[str] = set()
@@ -161,52 +365,79 @@ class BPETokenizer:
             initial_chars.update(word)
         initial_chars.add(self.word_break)
 
+        if num_workers > 1:
+            self.rules = self._train_parallel_merges(vocab, n_merges, num_workers)
+            self.tokens = initial_chars | {left + right for left, right in self.rules}
+            self._build_index()
+            return
+
         word_to_tokens: dict[str, list[str]] = {
             word: list(word) + [self.word_break] for word in vocab
         }
 
-        pair_counts: Counter = Counter()
-        pair_to_words: dict = defaultdict(set)
+        # Invariants: every pair in pair_counts has a holder set that is a superset of
+        # the words containing it; both are dropped together when the count hits 0.
+        pair_counts: dict[tuple[str, str], int] = {}
+        pair_to_words: dict[tuple[str, str], set[str]] = {}
 
-        print("Building initial pairs...")
+        logger.info("Building initial pairs...")
         for word, freq in vocab.items():
             tokens = word_to_tokens[word]
-            for i in range(len(tokens) - 1):
-                pair = (tokens[i], tokens[i + 1])
-                pair_counts[pair] += freq
-                pair_to_words[pair].add(word)
+            for pair in zip(tokens, tokens[1:]):
+                pair_counts[pair] = pair_counts.get(pair, 0) + freq
+                holders = pair_to_words.get(pair)
+                if holders is None:
+                    pair_to_words[pair] = {word}
+                else:
+                    holders.add(word)
 
+        heap = [(-count, pair) for pair, count in pair_counts.items()]
+        heapq.heapify(heap)
         self.rules = []
 
-        print(f"Training {n_merges} merges...")
+        logger.info("Training %d merges...", n_merges)
         for _ in tqdm(range(n_merges)):
-            if not pair_counts:
+            best_pair = _pop_best_pair(heap, pair_counts)
+            if best_pair is None:
                 break
-
-            best_pair = min(pair_counts, key=lambda pair: (-pair_counts[pair], pair))
             self.rules.append(best_pair)
+            left, right = best_pair
+            merged = left + right
+            created: set[tuple[str, str]] = set()
 
-            for word in sorted(pair_to_words[best_pair]):
-                freq = vocab[word]
-                tokens = word_to_tokens[word]
-
-                for i in range(len(tokens) - 1):
-                    p = (tokens[i], tokens[i + 1])
-                    pair_counts[p] -= freq
-                    if pair_counts[p] <= 0:
-                        del pair_counts[p]
-                    pair_to_words[p].discard(word)
-
-                new_tokens = self._merge_pair_in_tokens(tokens, best_pair)
+            # Holder sets are supersets (a word is not un-listed when a merge
+            # removes a pair from it); words without a match are skipped. Integer
+            # count arithmetic is order-independent, so no sorting is needed.
+            for word in pair_to_words.pop(best_pair):
+                result = _merge_word_diff(word_to_tokens[word], left, right, merged)
+                if result is None:
+                    continue
+                new_tokens, removed, added = result
                 word_to_tokens[word] = new_tokens
+                freq = vocab[word]
 
-                for i in range(len(new_tokens) - 1):
-                    p = (new_tokens[i], new_tokens[i + 1])
-                    pair_counts[p] += freq
-                    pair_to_words[p].add(word)
+                for pair in removed:
+                    remaining = pair_counts[pair] - freq
+                    if remaining > 0:
+                        pair_counts[pair] = remaining
+                    else:
+                        del pair_counts[pair]
+                        pair_to_words.pop(pair, None)
 
-            if best_pair in pair_counts:
-                del pair_counts[best_pair]
+                for pair in added:
+                    pair_counts[pair] = pair_counts.get(pair, 0) + freq
+                    holders = pair_to_words.get(pair)
+                    if holders is None:
+                        pair_to_words[pair] = {word}
+                    else:
+                        holders.add(word)
+                    created.add(pair)
+
+            # Only pairs touching the new token can have gained count.
+            for pair in created:
+                count = pair_counts.get(pair)
+                if count is not None:
+                    heapq.heappush(heap, (-count, pair))
 
         # Compute the final token set; vocab and word_to_tokens go out of scope here
         self.tokens = initial_chars
@@ -215,12 +446,62 @@ class BPETokenizer:
 
         self._build_index()
 
+    def _train_parallel_merges(
+        self, vocab: dict[str, int], n_merges: int, num_workers: int,
+    ) -> list[tuple[str, str]]:
+        if not vocab or not n_merges:
+            return []
+        rules: list[tuple[str, str]] = []
+        logger.info("Building initial pairs in parallel...")
+        with ExitStack() as stack:
+            # Each single-worker pool owns one persistent shard. A shared pool
+            # does not guarantee that successive tasks reach the same worker.
+            pools = [stack.enter_context(ProcessPoolExecutor(
+                max_workers=1, initializer=_worker_merge_init,
+                initargs=({word: vocab[word] for word in shard}, self.word_break),
+            )) for shard in _chunk(list(vocab), min(num_workers, len(vocab)))]
+            counts: dict[tuple[str, str], int] = {}
+            for future in [pool.submit(_worker_merge, None) for pool in pools]:
+                for pair, count in future.result().items():
+                    counts[pair] = counts.get(pair, 0) + count
+            heap = [(-count, pair) for pair, count in counts.items()]
+            heapq.heapify(heap)
+
+            logger.info("Training %d merges...", n_merges)
+            for _ in tqdm(range(n_merges)):
+                best = _pop_best_pair(heap, counts)
+                if best is None:
+                    break
+                rules.append(best)
+                merged = best[0] + best[1]
+                futures = [pool.submit(_worker_merge, best) for pool in pools]
+                changed: set[tuple[str, str]] = set()
+                for future in futures:
+                    # Shard deltas may cancel across shards, so all of them are
+                    # summed before any pair is deleted or pushed.
+                    for pair, delta in future.result().items():
+                        counts[pair] = counts.get(pair, 0) + delta
+                        changed.add(pair)
+                for pair in changed:
+                    count = counts[pair]
+                    if count <= 0:
+                        del counts[pair]
+                    elif pair[0] == merged or pair[1] == merged:
+                        heapq.heappush(heap, (-count, pair))
+        return rules
+
     # ------------------------------------------------------------------
     # Inference — single text  (O(n log n) heap-based BPE)
     # ------------------------------------------------------------------
 
     def encode_word(self, word: str) -> list[str]:
+        """Encode a single word into BPE tokens (returns a fresh list)."""
+        return list(self._encode_word_tuple(word))
+
+    def _encode_word_tuple(self, word: str) -> tuple[str, ...]:
         """Encode a single word using a min-heap + doubly-linked list.
+
+        Returns the (immutable, possibly cached) token tuple without copying.
 
         Complexity: O(n log n) where n = number of characters in the word.
 
@@ -239,7 +520,7 @@ class BPETokenizer:
         cached = self._encode_cache.get(word)
         if cached is not None:
             self._encode_cache.move_to_end(word)
-            return list(cached)
+            return cached
 
         # Map unknown characters to unk_token
         chars = [c if c in self.tokens else self.unk_token for c in word]
@@ -247,7 +528,7 @@ class BPETokenizer:
         n = len(chars)
 
         if n == 1:
-            return list(self._remember(word, chars))
+            return self._remember(word, chars)
 
         # Doubly-linked list over positions: O(1) merge, O(n) traversal
         #   prev[i]  = index of the previous live position  (-1 = none)
@@ -304,16 +585,24 @@ class BPETokenizer:
             result.append(chars[i])
             i = next_[i]
 
-        return list(self._remember(word, result))
+        return self._remember(word, result)
 
     def encode(self, text: str) -> list[str]:
         """Encode a single text string into BPE tokens."""
-        return list(chain.from_iterable(
-            self.encode_word(word) for word in self._split(text)
-        ))
+        return list(chain.from_iterable(map(self._encode_word_tuple, self._split(text))))
 
     def decode(self, tokens: Iterable[str]) -> str:
-        """Reconstruct readable text from this tokenizer's BPE tokens."""
+        """Reconstruct text from this tokenizer's BPE tokens.
+
+        With ``text_processing_version >= 3`` this is exact: ``decode(encode(s))``
+        equals ``s`` after NFC normalisation (and lower-casing if ``lowercase``),
+        provided every character of ``s`` was in the training alphabet (unknown
+        characters become ``unk_token``). Legacy versions (1, 2) discarded
+        whitespace when tokenising, so they only approximate the original spacing.
+        """
+        if self.text_processing_version >= 3:
+            word_break, cut = self.word_break, -len(self.word_break)
+            return "".join(t[:cut] if t.endswith(word_break) else t for t in tokens)
         units: list[str] = []
         current = ""
         for token in tokens:
@@ -360,8 +649,10 @@ class BPETokenizer:
                          for word in requested_words if word in self._encode_cache}
         uncached = list(requested_words - encoded_words.keys())
 
-        if uncached and num_workers > 1:
-            chunks = _chunk(uncached, num_workers)
+        # Cap the pool so every worker gets enough work to repay its start-up.
+        workers = min(num_workers, len(uncached) // _MIN_WORDS_PER_WORKER)
+        if workers > 1:
+            chunks = _chunk(uncached, workers)
             with ProcessPoolExecutor(
                 max_workers=len(chunks), initializer=_worker_init, initargs=(self,),
             ) as pool:
@@ -370,7 +661,7 @@ class BPETokenizer:
                     for word, encoded in mapping.items():
                         self._remember(word, encoded)
         else:
-            encoded_words.update((word, tuple(self.encode_word(word))) for word in uncached)
+            encoded_words.update((word, self._encode_word_tuple(word)) for word in uncached)
 
         return [
             list(chain.from_iterable(encoded_words[word] for word in words))

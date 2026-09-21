@@ -19,7 +19,7 @@ providing a production-ready translation service.
   gradient clipping, checkpointing, and early stopping.
 - Self-contained checkpoints and a high-level text translation interface.
 - BLEU and chrF evaluation on held-out sentence pairs.
-- Optional runtime source typo augmentation backed by AugLy (or nlpaug).
+- Optional runtime source typo augmentation backed by nlpaug KeyboardAug.
 - An English-French sentence-pair corpus. Train the model notebook to create a
   compatible checkpoint locally.
 
@@ -124,6 +124,20 @@ tokenizer.save("artifacts/tokenizers/my_tokenizer.json")
 BPE frequency ties use a stable lexical ordering, so the same training corpus
 produces the same merge rules across Python hash seeds.
 
+For large training corpora, use `tokenizer.train(texts, num_workers=4)` to
+extract word frequencies and count BPE pairs in worker processes. `chunk_size=2000` controls texts
+per task; the queue holds at most twice the worker count in chunks, so input
+can remain a generator. During merge learning, each worker keeps a vocabulary
+shard and returns signed pair-count changes after applying the chosen merge.
+The parent sums counts and chooses the next pair with deterministic tie-breaking.
+Merge selection and input generation (including typo augmentation) remain sequential.
+Communication on every merge adds overhead, so measure performance on your corpus.
+This uses processes to parallelize Python
+work; small corpora may be faster with the default single worker. In standalone
+scripts, call parallel training inside an `if __name__ == "__main__":` guard.
+Word extraction shows a live count and rate for streaming inputs; sized inputs
+also show a percentage. The notebook uses smaller chunks for more frequent updates.
+
 `num_workers=1` is best for small batches. Multiple workers can help with large
 collections of unique words, but process startup has overhead.
 
@@ -217,14 +231,36 @@ python scripts/train.py --checkpoint artifacts/checkpoints/experiment-01.pth
 python scripts/train.py --source-typo-probability 0.23
 ```
 
-Source typo augmentation defaults to a 23% sentence-level probability and uses
-AugLy. It runs only in training lookups, before BPE tokenization; targets,
-validation records and test records stay clean. Use
-`--source-typo-probability 0` or `--source-typo-backend none` to disable it.
-The internal typo count scales with sentence length using a 1.5% per-character
-rate and a zero-truncated Poisson sample, with a defensive cap of
-`max(3, 5% of alphabetic characters)`. `nlpaug` is available as an alternative backend. No
-corrupted samples are cached or written to disk.
+Source typo augmentation defaults to a 23% sentence-selection probability and
+uses nlpaug `KeyboardAug` with its native word/character selection. It runs only
+on training sources before BPE tokenization. Targets and validation/test data
+stay clean. Disable with `--source-typo-backend none` or
+`--source-typo-probability 0`; `augly` is no longer supported.
+
+Native controls are `--source-typo-char-p 0.1`, `--source-typo-word-p 0.1`,
+`--source-typo-char-max 1`, and `--source-typo-word-max 3`. The backend minimum
+is one character per selected eligible word and one eligible word per selected
+sentence; probabilities are fractions subject to those minima and maxima.
+KeyboardAug substitutes neighboring keyboard characters; it does not promise
+an exact edit count and may leave sentences unchanged. There is no custom
+Poisson sampler, edit-distance validator, or outer retry loop. The backend is
+created lazily and reused. Python and NumPy RNGs are seeded by the trainer;
+exact augmentation replay with multiple workers is not guaranteed on resume.
+
+`notebooks/train_tokenizers.ipynb` replaces sampled English examples with
+noisy variants during vocabulary learning, keeping one text per corpus row.
+French targets remain clean.
+Set its corpus path explicitly to the intended CSV. Merge budgets are 12,000
+English and 10,000 French (actual vocabulary size also includes characters).
+It saves to `artifacts/tokenizers/noisy-v1/` with training metadata instead of
+replacing the existing tokenizers. Restart the notebook kernel before running
+all cells after updating dependencies. Install with `pip install -e ".[notebooks]"`.
+
+Pass the resulting `--source-tokenizer` and `--target-tokenizer` paths to both
+`scripts/filter_csv.py` and `scripts/train.py`. Re-filter after retraining;
+noise can still increase source token lengths at runtime. New tokenizers require
+a new translation model, not resumed weights with old token IDs. A larger target
+vocabulary also increases output-layer and logits memory; measure with diagnostics.
 
 To diagnose GPU memory use, append `--debug-memory --debug-batches 3
 --debug-log /tmp/train-debug.jsonl` to the training command. Diagnostics print

@@ -1,0 +1,102 @@
+{
+  "python": "3.14.7",
+  "data": "/home/unicorn/my-lstm-translator/data/csv/en-fr.csv",
+  "corpus_bytes": 8410507707,
+  "rows_requested": 200000,
+  "chunk_size": 2000,
+  "seed": 42,
+  "records": [
+    {
+      "stage": "augmentation_first_call",
+      "seconds": 0.7663540329995158
+    },
+    {
+      "stage": "csv_read",
+      "seconds": 2.0886021189999155,
+      "repeat": 0
+    },
+    {
+      "stage": "augmentation_only",
+      "seconds": 10.44273173199963,
+      "repeat": 0,
+      "source_rows": 200000,
+      "emitted_texts": 245540
+    },
+    {
+      "stage": "count_prepared_texts",
+      "seconds": 6.2506279960007305,
+      "repeat": 0,
+      "workers": 1
+    },
+    {
+      "stage": "streaming_total",
+      "seconds": 20.05145874200025,
+      "repeat": 0,
+      "workers": 1,
+      "input_seconds": 13.01095355493544,
+      "emitted_texts": 245540,
+      "unique_words": 188703,
+      "source_rows": 200000
+    },
+    {
+      "stage": "count_prepared_texts",
+      "seconds": 5.1725143950006895,
+      "repeat": 0,
+      "workers": 4
+    },
+    {
+      "stage": "streaming_total",
+      "seconds": 14.45098532100019,
+      "repeat": 0,
+      "workers": 4,
+      "input_seconds": 13.378165725985127,
+      "emitted_texts": 245540,
+      "unique_words": 188703,
+      "source_rows": 200000
+    },
+    {
+      "stage": "csv_read",
+      "seconds": 1.8581457319996844,
+      "repeat": 1
+    },
+    {
+      "stage": "augmentation_only",
+      "seconds": 9.749280302999978,
+      "repeat": 1,
+      "source_rows": 200000,
+      "emitted_texts": 245540
+    },
+    {
+      "stage": "count_prepared_texts",
+      "seconds": 2.138326684000276,
+      "repeat": 1,
+      "workers": 4
+    },
+    {
+      "stage": "streaming_total",
+      "seconds": 15.006047810999917,
+      "repeat": 1,
+      "workers": 4,
+      "input_seconds": 13.85457018721172,
+      "emitted_texts": 245540,
+      "unique_words": 188703,
+      "source_rows": 200000
+    },
+    {
+      "stage": "count_prepared_texts",
+      "seconds": 6.0967151839995495,
+      "repeat": 1,
+      "workers": 1
+    },
+    {
+      "stage": "streaming_total",
+      "seconds": 20.015199329000097,
+      "repeat": 1,
+      "workers": 1,
+      "input_seconds": 13.069810043231882,
+      "emitted_texts": 245540,
+      "unique_words": 188703,
+      "source_rows": 200000
+    }
+  ]
+}

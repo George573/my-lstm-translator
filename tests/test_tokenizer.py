@@ -1,4 +1,54 @@
 from lstm_translator import BPETokenizer
+import pytest
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("num_workers", [1, 2])
+def test_word_extraction_progress_tracks_completed_texts(monkeypatch, streaming, num_workers):
+    bars = []
+
+    class Progress:
+        def __init__(self, **options):
+            self.options = options
+            self.count = 0
+            bars.append(self)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def update(self, count):
+            self.count += count
+
+    monkeypatch.setattr("lstm_translator.tokenizer.tqdm", Progress)
+    texts = ["one two", "two", "three"]
+    source = iter(texts) if streaming else texts
+    result = BPETokenizer()._extract_words(source, num_workers=num_workers, chunk_size=2)
+
+    assert result == {"one": 1, "two": 2, "three": 1}
+    assert bars[0].options["desc"] == "Extracting words"
+    assert bars[0].options["total"] == (None if streaming else 3)
+    assert bars[0].count == 3
+
+
+@pytest.mark.parametrize("processing_version", [1, 2])
+@pytest.mark.parametrize("texts", [[], ["CAFÉ foo_bar!", "cafe\u0301", "", "foo_bar!", "unknown 😀",
+                                       "aaaaaa ababab banana", "aaaaaa"] * 3])
+def test_parallel_training_matches_serial(texts, processing_version):
+    serial = BPETokenizer(lowercase=True, text_processing_version=processing_version)
+    parallel = BPETokenizer(lowercase=True, text_processing_version=processing_version)
+    serial.train(iter(texts), n_merges=100)
+    parallel.train(iter(texts), n_merges=100, num_workers=2, chunk_size=2)
+    assert parallel.to_dict() == serial.to_dict()
+
+
+@pytest.mark.parametrize("option", ["num_workers", "chunk_size"])
+@pytest.mark.parametrize("value", [0, -1, True, 1.5])
+def test_training_rejects_invalid_parallel_options(option, value):
+    with pytest.raises(ValueError, match=option):
+        BPETokenizer().train([], **{option: value})
 
 
 def test_tokenizer_round_trip(tmp_path):

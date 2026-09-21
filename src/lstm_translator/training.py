@@ -6,6 +6,7 @@ import math
 import random
 from collections.abc import Callable, Sequence
 
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Subset
@@ -51,8 +52,15 @@ class EpochMetrics:
     teacher_forcing_ratio: float
 
 
+def _numpy_rng_state():
+    # Plain Python types remain loadable with torch.load(weights_only=True).
+    name, keys, position, has_gauss, cached_gaussian = np.random.get_state()
+    return (name, keys.tolist(), position, has_gauss, cached_gaussian)
+
+
 def seed_everything(seed: int) -> None:
     random.seed(seed)
+    np.random.seed(seed % 2**32)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
@@ -312,6 +320,8 @@ def train_streaming_model(
         best_state, best_loss = resume_state["best_state"], resume_state["best_loss"]
         stale_epochs = 0 if reset_patience else resume_state["stale_intervals"]
         random.setstate(resume_state["python_rng"])
+        if resume_state.get("numpy_rng") is not None:
+            np.random.set_state(tuple(resume_state["numpy_rng"]))
         torch.set_rng_state(resume_state["torch_rng"].cpu())
         if torch.cuda.is_available() and resume_state["cuda_rng"] is not None:
             torch.cuda.set_rng_state_all([state.cpu() for state in resume_state["cuda_rng"]])
@@ -343,7 +353,8 @@ def train_streaming_model(
                 interval_loss=loss, interval_tokens=tokens,
                 history=[asdict(item) for item in history],
                 best_state=best_state, best_loss=best_loss, stale_intervals=stale_epochs,
-                python_rng=random.getstate(), torch_rng=torch.get_rng_state(),
+                python_rng=random.getstate(), numpy_rng=_numpy_rng_state(),
+                torch_rng=torch.get_rng_state(),
                 cuda_rng=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
                 mps_rng=torch.mps.get_rng_state() if device.type == "mps" else None,
             ))

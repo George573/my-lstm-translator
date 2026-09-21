@@ -76,7 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-workers", type=non_negative_int, default=0)
     parser.add_argument("--source-typo-probability", type=probability, default=0.23,
                         help="probability of dynamically corrupting each training source sentence")
-    parser.add_argument("--source-typo-backend", choices=("augly", "nlpaug", "none"), default="augly")
+    parser.add_argument("--source-typo-backend", choices=("nlpaug", "none"), default="nlpaug")
+    parser.add_argument("--source-typo-char-p", type=probability, default=0.1)
+    parser.add_argument("--source-typo-word-p", type=probability, default=0.1)
+    parser.add_argument("--source-typo-char-max", type=positive_int, default=1)
+    parser.add_argument("--source-typo-word-max", type=positive_int, default=3)
     parser.add_argument("--index-dir", type=Path, help="record-index cache directory")
     initialization = parser.add_mutually_exclusive_group()
     initialization.add_argument("--resume", type=Path, help="resume a .latest training checkpoint")
@@ -179,6 +183,8 @@ def main(argv: list[str] | None = None) -> int:
             source_typo_generator=(TypoGenerator(
                 backend=args.source_typo_backend,
                 corruption_probability=args.source_typo_probability,
+                aug_char_p=args.source_typo_char_p, aug_word_p=args.source_typo_word_p,
+                aug_char_max=args.source_typo_char_max, aug_word_max=args.source_typo_word_max,
             ) if args.source_typo_probability and args.source_typo_backend != "none" else None),
         )
         validation_data = IndexedTranslationDataset(
@@ -224,6 +230,8 @@ def main(argv: list[str] | None = None) -> int:
                 source_typo_backend=args.source_typo_backend,
                 source_typo_probability=args.source_typo_probability,
                 augmentation_enabled=training_data.source_typo_generator is not None,
+                typo_options=(training_data.source_typo_generator.options
+                              if training_data.source_typo_generator else None),
                 source_tokenizer=tokenizer_info(source_tokenizer),
                 target_tokenizer=tokenizer_info(target_tokenizer),
                 tokenizer_origin=str(initial_checkpoint) if initial_checkpoint else
@@ -252,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
                     "validation_teacher_forcing": "training",
                     "source_typo_probability": args.source_typo_probability,
                     "source_typo_backend": args.source_typo_backend,
+                    "source_typo_options": (training_data.source_typo_generator.options
+                                            if training_data.source_typo_generator else None),
                     "partition_scheme": "normalized-source-v1",
                 },
             )
@@ -279,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
                     "validation_teacher_forcing": "training",
                     "source_typo_probability": args.source_typo_probability,
                     "source_typo_backend": args.source_typo_backend,
+                    "source_typo_options": (training_data.source_typo_generator.options
+                                            if training_data.source_typo_generator else None),
                     "partition_scheme": "normalized-source-v1",
                 },
                 training_state=state,

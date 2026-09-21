@@ -1,0 +1,28 @@
+{
+  "corpus": "/home/unicorn/my-lstm-translator/data/csv/en-fr.csv",
+  "corpus_size": 8410507707,
+  "seed": 42,
+  "en_merges": 12000,
+  "fr_merges": 10000,
+  "noise_probability": 0.23,
+  "noise_options": {
+    "aug_char_p": 0.1,
+    "aug_word_p": 0.1,
+    "aug_char_max": 1,
+    "aug_word_max": 3
+  },
+  "source_tokenizer": {
+    "sha256": "3c9126daeb10a4c0cf19caae2171c1c73fe9f4553ed25455b276eaa34b796a53",
+    "vocabulary_size": 14927,
+    "merges": 12000,
+    "format_version": 3,
+    "text_processing_version": 3
+  },
+  "target_tokenizer": {
+    "sha256": "51e70ad3fc21e91cfb18fa01b5d97b3b85e89a243327c4a0c207427f9bf38e7e",
+    "vocabulary_size": 12836,
+    "merges": 10000,
+    "format_version": 3,
+    "text_processing_version": 3
+  }
+}

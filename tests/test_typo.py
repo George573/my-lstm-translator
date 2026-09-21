@@ -1,66 +1,79 @@
 import random
+
 import pytest
 
-from lstm_translator import TypoGenerator, TranslationDataset, Vocabulary
+from lstm_translator import TypoGenerator, TranslationDataset, Vocabulary, seed_everything
+from lstm_translator.typo import tokenizer_training_texts
 
 
 def test_probability_zero_and_none_are_clean():
-    assert TypoGenerator(backend="none", corruption_probability=1)("clean") == "clean"
-    assert TypoGenerator(backend="augly", corruption_probability=0)("clean") == "clean"
+    def fail(text):
+        raise AssertionError('backend called')
+    assert TypoGenerator(backend='none', corruption_probability=1, augmenter=fail)('clean') == 'clean'
+    assert TypoGenerator(corruption_probability=0, augmenter=fail)('clean') == 'clean'
 
 
-def test_backend_is_called_only_after_sentence_sampling():
+def test_backend_called_once_and_native_output_accepted():
     calls = []
-
-    def fake(text, count):
-        calls.append((text, count))
-        return text + "!"
-
-    generator = TypoGenerator(corruption_probability=1, rng=random.Random(4), augmenter=fake)
-    assert generator("hello") == "hello!"
-    assert calls and calls[0][1] >= 1
+    def fake(text):
+        calls.append(text)
+        return ['multiple changes are accepted']
+    generator = TypoGenerator(corruption_probability=1, augmenter=fake)
+    assert generator('hello world') == 'multiple changes are accepted'
+    assert calls == ['hello world']
 
 
-def test_longer_sentences_receive_more_errors_on_average():
-    short_counts = []
-    long_counts = []
-    short = "a" * 20
-    long = "a" * 200
-    short_generator = TypoGenerator(corruption_probability=1, rng=random.Random(1),
-                                    augmenter=lambda text, count: short_counts.append(count) or text)
-    long_generator = TypoGenerator(corruption_probability=1, rng=random.Random(2),
-                                   augmenter=lambda text, count: long_counts.append(count) or text)
-    for _ in range(500):
-        short_generator(short)
-        long_generator(long)
-    assert sum(long_counts) / len(long_counts) > sum(short_counts) / len(short_counts)
-    assert max(short_counts) >= 2
-    assert max(long_counts) <= 10
+def test_sentence_sampling():
+    calls = []
+    generator = TypoGenerator(corruption_probability=.23, rng=random.Random(42),
+                              augmenter=lambda text: calls.append(text) or text)
+    for _ in range(10000):
+        generator('hello world')
+    assert 2100 < len(calls) < 2500
 
 
-def test_empty_and_invalid_rate():
-    generator = TypoGenerator(corruption_probability=1, augmenter=lambda text, count: "changed")
-    assert generator("... 123") == "... 123"
-    with pytest.raises(ValueError, match="typo_rate"):
-        TypoGenerator(typo_rate=0)
+@pytest.mark.parametrize('options', [dict(backend='augly'), dict(aug_char_p=float('nan')),
+    dict(aug_word_p=2), dict(aug_char_max=0), dict(aug_word_max=1.5)])
+def test_invalid_options(options):
+    with pytest.raises(ValueError):
+        TypoGenerator(**options)
+
+
+def test_empty_and_non_alphabetic_unchanged():
+    generator = TypoGenerator(corruption_probability=1, augmenter=lambda text: 'changed')
+    assert generator('... 123') == '... 123'
+    assert generator('') == ''
+
+
+def test_tokenizer_stream_replaces_selected_texts_without_adding_examples():
+    generator = TypoGenerator(corruption_probability=1,
+                             augmenter=lambda text: 'noisy' if text == 'clean' else text)
+    assert list(tokenizer_training_texts(iter(['clean', 'unchanged']), generator)) == [
+        'noisy', 'unchanged']
+
+
+def test_real_backend_reuse_and_seeded_edits():
+    def run():
+        seed_everything(42)
+        generator = TypoGenerator(corruption_probability=1)
+        results = [generator('Keyboard augmentation changes familiar English words.') for _ in range(8)]
+        backend = generator._augmenter
+        generator('Another sentence for checking backend reuse.')
+        assert generator._augmenter is backend
+        return results
+    first = run()
+    assert first == run()
+    assert any(text != 'Keyboard augmentation changes familiar English words.' for text in first)
 
 
 def test_dataset_augments_source_but_not_target():
     class Tokenizer:
         def encode(self, text):
             return [text]
-
-    vocabulary = Vocabulary(["hello", "bonjour"])
-    source = [["hello"]]
-    target = [["bonjour"]]
-    dataset = TranslationDataset(
-        source, target, vocabulary, vocabulary,
-        source_texts=["hello"],
-        source_tokenizer=Tokenizer(),
-        source_typo_generator=TypoGenerator(
-            corruption_probability=1, augmenter=lambda text, count: "changed",
-        ),
-    )
-    encoded_source, encoded_target = dataset[0]
-    assert encoded_source.tolist() == [vocabulary.token_to_index["<UNK>"], vocabulary.token_to_index["<EOS>"]]
-    assert encoded_target.tolist() == [vocabulary.token_to_index["<SOS>"], vocabulary.token_to_index["bonjour"], vocabulary.token_to_index["<EOS>"]]
+    vocabulary = Vocabulary(['hello', 'bonjour'])
+    dataset = TranslationDataset([['hello']], [['bonjour']], vocabulary, vocabulary,
+        source_texts=['hello'], source_tokenizer=Tokenizer(),
+        source_typo_generator=TypoGenerator(corruption_probability=1, augmenter=lambda text: 'changed'))
+    source, target = dataset[0]
+    assert source.tolist() == [3, 2]
+    assert target.tolist() == [1, vocabulary.token_to_index['bonjour'], 2]

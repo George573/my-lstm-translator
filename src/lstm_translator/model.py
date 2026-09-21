@@ -205,8 +205,11 @@ class Decoder(nn.Module):
         encoder_outputs: Tensor,
         source_mask: Tensor,
         projected_encoder: Tensor | None = None,
+        *,
+        embedded_inputs: Tensor | None = None,
+        project_output: bool = True,
     ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-        embedded = self.embedding(inputs)
+        embedded = self.embedding(inputs) if embedded_inputs is None else embedded_inputs
         if self.attention is not None:
             query = hidden[0][-1]
             context = self.attention(query, encoder_outputs, source_mask, projected_encoder)
@@ -218,7 +221,7 @@ class Decoder(nn.Module):
         outputs, hidden = self.lstm(recurrent_input, hidden)
         if context is not None:
             outputs = torch.cat((outputs, context), dim=-1)
-        return self.output(outputs), hidden
+        return (self.output(outputs) if project_output else outputs), hidden
 
 
 class Seq2Seq(nn.Module):
@@ -266,6 +269,22 @@ class Seq2Seq(nn.Module):
             self.decoder.attention.encoder_projection(encoder_outputs)
             if self.decoder.attention is not None else None
         )
+
+        if teacher_forcing_ratio == 1.0 and target_length > 1:
+            # Attention feeds the previous state back into the LSTM input, so
+            # recurrence stays sequential. Embedding and vocabulary projection
+            # do not depend on that feedback and can run once for the sequence.
+            embedded = self.decoder.embedding(target[:, :-1])
+            features = []
+            for step in range(target_length - 1):
+                output, hidden = self.decoder(
+                    target[:, step : step + 1], hidden, encoder_outputs,
+                    source_mask, projected_encoder,
+                    embedded_inputs=embedded[:, step : step + 1],
+                    project_output=False,
+                )
+                features.append(output)
+            return self.decoder.output(torch.cat(features, dim=1))
 
         decoder_input = target[:, :1]
         for step in range(target_length - 1):

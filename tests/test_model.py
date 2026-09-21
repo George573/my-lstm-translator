@@ -102,3 +102,25 @@ def test_encoder_projection_runs_once_per_sequence():
         assert len(calls) == 1
     finally:
         handle.remove()
+
+
+@pytest.mark.parametrize("attention", [False, True])
+def test_full_teacher_forcing_batches_embedding_and_output_projection(attention):
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=1,
+                                      embedding_dim=3, attention=attention))
+    calls = {"embedding": [], "output": []}
+    handles = [
+        module.register_forward_hook(
+            lambda module, args, output, name=name: calls[name].append(args[0].shape))
+        for name, module in (("embedding", model.decoder.embedding),
+                             ("output", model.decoder.output))
+    ]
+    try:
+        model(torch.tensor([[4, 5, 2]]), torch.tensor([[1, 5, 6, 2]]),
+              teacher_forcing_ratio=1.0)
+        assert calls["embedding"] == [torch.Size([1, 3])]
+        assert len(calls["output"]) == 1
+        assert calls["output"][0][:2] == (1, 3)
+    finally:
+        for handle in handles:
+            handle.remove()

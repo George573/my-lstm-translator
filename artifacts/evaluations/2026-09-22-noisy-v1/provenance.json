@@ -1,0 +1,25 @@
+{
+  "identical_checkpoint_weights": true,
+  "tokenizers": {
+    "source": {
+      "path": "artifacts/tokenizers/noisy-v1/en.json",
+      "sha256": "24ee8b92244ca612ddb46eeba224118774baa62e50e43bad57b0081813162b46",
+      "matches_both_embedded_tokenizers": true
+    },
+    "target": {
+      "path": "artifacts/tokenizers/noisy-v1/fr.json",
+      "sha256": "85600601a56984d39698a76bb622397dff229cd59e82bef2ad73e8a550823fc6",
+      "matches_both_embedded_tokenizers": true
+    }
+  },
+  "checkpoints": {
+    "model-100mil.pth": {
+      "path": "/home/unicorn/new_model/checkpoints/model-100mil.pth",
+      "sha256": "cf31eea1134ea4c7d6791bd1ecfb77e06675e99e651ca516b36d60b9cc396380"
+    },
+    "model-100mil.latest.pth": {
+      "path": "/home/unicorn/new_model/checkpoints/model-100mil.latest.pth",
+      "sha256": "5f33c339b6e4884f12151537db2535430970e533c1c502da0c5027ffe6b95afa"
+    }
+  }
+}

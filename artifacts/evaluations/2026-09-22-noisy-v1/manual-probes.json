@@ -1,0 +1,50 @@
+[
+  {
+    "source": "Hello, how are you?",
+    "hypothesis": "Hello, comment vous êtes?"
+  },
+  {
+    "source": "I am waiting for my friend.",
+    "hypothesis": "Je suis attendu pour mon ami."
+  },
+  {
+    "source": "I am not waiting for my friend.",
+    "hypothesis": "Je ne m'attends pas à mon ami."
+  },
+  {
+    "source": "The meeting starts at 9:30 tomorrow morning.",
+    "hypothesis": "La séance débute à 9 h 30."
+  },
+  {
+    "source": "The price decreased from 50 euros to 30 euros.",
+    "hypothesis": "Le prix a diminué de 50 euros à 30 euros."
+  },
+  {
+    "source": "The price increased from 30 euros to 50 euros.",
+    "hypothesis": "Le prix a augmenté de 30 euros à 50 euros."
+  },
+  {
+    "source": "I bought three apples and two oranges.",
+    "hypothesis": "J'ai acheté trois pommes et deux oranges."
+  },
+  {
+    "source": "If it rains tomorrow, we will stay at home.",
+    "hypothesis": "Si elle plaît demain, nous resterons à la maison."
+  },
+  {
+    "source": "Please send me the report before Friday.",
+    "hypothesis": "Veuillez envoyer le rapport avant le vendredi."
+  },
+  {
+    "source": "Please send me the reprot before Friday.",
+    "hypothesis": "Veuillez envoyer le dépôt avant le vendredi."
+  },
+  {
+    "source": "Tom felt safe.",
+    "hypothesis": "Trop show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show s"
+  },
+  {
+    "source": "The Commission shall comprise nine members.",
+    "hypothesis": "La Commission comprend neuf membres."
+  }
+]

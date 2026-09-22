@@ -1,0 +1,775 @@
+{
+  "device": "cpu",
+  "cpu": "Intel Core i7-8700",
+  "torch": "2.7.1+cu118",
+  "threads": 4,
+  "batch_size": 16,
+  "max_length": 100,
+  "sources": [
+    "• the capital cost of your rental property.",
+    "I don't believe you.",
+    "• Decreased risk of environmental pollution",
+    "People change.",
+    "So we're engaged in an important exercise.",
+    "Tom is in Boston with Mary.",
+    "• determining their useful life; and",
+    "I'm waiting for my friend.",
+    "See in particular the two documents of consultation of the social partners:",
+    "These cups are too small.",
+    "BASIS:",
+    "This apple is rotten.",
+    "The New York Times Magazine, 28 January 2001. www.nytimes.com/library/magazine/home/20020228mag-aids.html. 22.",
+    "Tom knows who I am.",
+    "\"The Rise of Global Value Chains\" that was written by Aaron Sydor.",
+    "Please remind me to write a letter tomorrow.",
+    "Establishing an EDRC review of Community economic policies The Commission proposes that:",
+    "What do I owe Tom?",
+    "(1) Cephalotus follicularis #1 II 1.12.0 COMPOSITAE (ASTERACEAE)",
+    "My daughter's getting all gussied up for her first date.",
+    "▪ Non-Resident School Fees Associated with Provincial Public Education in Canada.",
+    "I prefer being poor to being rich.",
+    "Demonstration – We will now create a new page",
+    "Go look for it.",
+    "Fish-pass in Saint-Ours Canal National Historic Site of Canada",
+    "Are these real?",
+    "Publication information QuÃ©bec, QuÃ©bec: s.n., 1891 Guerre du Canada, 1756-1760 :",
+    "I get stage fright.",
+    "The series was watched by more than two million Canadians per episode.",
+    "It was a partial success.",
+    "2.2. discontinuation of deliveries until further notice, to limit our losses",
+    "Can you make the deadline?",
+    "• Aboriginal Communities Home > New Brunswick > Oromocto Oromocto Community:",
+    "I hope you find what you're looking for.",
+    "WLAV LE Definition 8.",
+    "Cars built nowadays are different from the ones built in the 70's.",
+    "If purpose is achieved, what assumptions must hold true to reach Objectives?",
+    "Tom felt safe.",
+    "Next teleconference and meeting Meeting: October 30, 1996.",
+    "I haven't broken a Christmas ornament in years.",
+    "The Commission shall comprise nine members.",
+    "It is their only choice.",
+    "The scorecard also assigns individual ownership to operational objectives or initiatives.",
+    "Okinawa is the southernmost island in Japan.",
+    "Retrofit and redesign these communities, or retreat from low-lying coastal areas?",
+    "He made up a story about the king.",
+    "Travel for selection/ networking",
+    "Never mind what she says.",
+    "<!ENTITY % IAlign \"(top|middle|bottom|left|right)\">",
+    "Don't touch anything without asking.",
+    "◦ Adequacy of the Performance Monitoring System (PMS)",
+    "Since he was dressed in black, he looked like a priest.",
+    "Infection and Immunity IMHA:",
+    "Why can't people hibernate?",
+    "And what kind of answer do you get?",
+    "I saw them.",
+    "Academic Level Master's Master's Doctoral Master's Doctoral",
+    "There was no swelling.",
+    "Sentences for the importation of narcotics and other illegal drugs are severe.",
+    "I think you're sitting in my seat.",
+    "At present, the working language is French.",
+    "It'll just take three seconds.",
+    "(c) Tolerances for other defects -",
+    "What you saw was a dolphin.",
+    "Features ICT4D Project Directory Advanced Search  Free State HIV Therapy Database (ART-HIV)",
+    "Is that bothering you?",
+    "• Public education and awareness",
+    "I don't really need this.",
+    "The Information Service Plc was registered in March 2003.",
+    "I think I'll go back to sleep.",
+    "Commission starts public dialogue on nanotechnologies read more PREVIOUS NEWS Subscription",
+    "Tom is seldom home.",
+    "Were they resolved in a way that encouraged positive discussion to continue?",
+    "How was the museum?",
+    "Ted Brooks Address: 2-151 Port Augusta St Address:",
+    "I haven't had a drink in months.",
+    "This is clear from the contradictions apparent in the Sessional Paper.",
+    "I'm going to flunk.",
+    "Reclassified Position Classification PL 01 Reclassified Supervisory Differential",
+    "I'm too scared to say anything.",
+    "• the establishment of a new Canadian ﬁnancial services business;",
+    "That's why I've done all this.",
+    "about other minority communities.",
+    "Have you ever wondered what might've happened if Tom hadn't been here?",
+    "Maligne Lake Travel And Wilderness Campgrounds",
+    "I want to make a complaint.",
+    "Cayen, J.-P. and S. van Norden.",
+    "God sent a sign.",
+    "the establishment of an independent mechanism for cooperation among national regulators;",
+    "That noise is almost driving me mad.",
+    "Canada Communicable Disease Report Volume 29-20, October 15, 2003",
+    "He's always breaking into our conversation.",
+    "FACTS Mr. Richman is deaf and uses a TTY to communicate.",
+    "You ran a red light.",
+    "· Sample projects are related to this project's needs",
+    "I don't know anything about him.",
+    "• failure to provide financial disclosure;",
+    "Is your house big?",
+    "The Year in Review / 2003–04:",
+    "Keep an eye on the boys. They're mischievous.",
+    "Mr. Pearson is a 40 year old professional engineer.",
+    "That's all that matters now.",
+    "Key Results Commitment — Promoting Objective Assurance What we provided",
+    "Now he has nothing to live for.",
+    "COMMUNITY OUTREACH AND CONSULTATIONS",
+    "You were just in the wrong place at the wrong time.",
+    "Wildlife and vegetation of unmanaged Douglas-fir forests.",
+    "I didn't hear the phone.",
+    "• Everyday, we receive many e-mails.",
+    "You're very nice.",
+    "URL of this page: /cleanair-airpur/default.asp?lang=lang=En&n=965FB9F7-1&accessible=off&meta=1",
+    "I remembered it.",
+    "URL of this page: http://www.cws-scf.ec.gc.ca/hsp-pih/default.asp?lang=En&n=4ED402B6-1&accessible=off&meta=1",
+    "We have a lot to discuss.",
+    "• the surface area of Kingsmere, Crean, Sandy and Heart lakes",
+    "I will play soccer tomorrow.",
+    "Lower Kilometric Rates - Effective July 1, 2008",
+    "It's a bit tricky.",
+    "The initiative will run for the next five years. ",
+    "Close the door behind you.",
+    "COMMUNITY INFRASTRUCTURE  Financial and Human Resources",
+    "They made him work.",
+    "• 10.7 (10) Participating organizations are responsible for determining performance pay.",
+    "I couldn't have done that by myself.",
+    "Intangible assets when joined to organisational changes are linked to strong performance.",
+    "The room was anything but tidy.",
+    "Two (2) appellants failed a non-compensatory qualification.",
+    "Tom started screaming."
+  ],
+  "note": "Sequential model runs; warm filesystem cache possible. Batch timing includes tokenization, generation and decoding, excludes metric scoring. Single requests use the public Translator.translate API. Three warm batch passes of 128 sources; 60 single requests after warmup.",
+  "models": {
+    "model-32mil-param-quick-tf-decay.latest.pth": {
+      "load_seconds": 1.5141085279992694,
+      "first_request_seconds": 0.11932123799851979,
+      "single_mean_ms": 132.5189626000186,
+      "single_median_ms": 109.14039750059601,
+      "single_p95_ms": 302.25426700053504,
+      "single_seconds": [
+        0.10903215899998031,
+        0.06550056799824233,
+        0.09952198900100484,
+        0.05595837900000333,
+        0.10630995700012136,
+        0.11193130900028336,
+        0.0666902979992301,
+        0.09636309200141113,
+        0.1227454410000064,
+        0.07832111000061559,
+        0.046815419000267866,
+        0.07616250299906824,
+        0.43995244200050365,
+        0.08418736299972807,
+        0.2378920549999748,
+        0.13656678299958003,
+        0.14024942300056864,
+        0.06546810200052278,
+        0.30225426700053504,
+        0.15156709999973828,
+        0.15585341500081995,
+        0.1167163520003669,
+        0.11965937199965992,
+        0.057502280000335304,
+        0.18176356200092414,
+        0.08348242500142078,
+        0.3369063149984868,
+        0.09413530299934791,
+        0.17423345600036555,
+        0.08351434399992286,
+        0.18864232600026298,
+        0.0745303599996987,
+        0.20016265800040856,
+        0.10031037099906825,
+        0.09118079600011697,
+        0.14953703100036364,
+        0.20005801200022688,
+        0.09784961299919814,
+        0.11811484899953939,
+        0.16239551099897653,
+        0.06654009999874688,
+        0.07564695600012783,
+        0.16901156200037804,
+        0.1338987149993045,
+        0.20647336000001815,
+        0.06839219500034233,
+        0.09403567699882842,
+        0.10554847300045367,
+        0.3143552740002633,
+        0.09117164700001013,
+        0.1360641270002816,
+        0.16419669700007944,
+        0.10927875900051731,
+        0.08994899100071052,
+        0.0855745589997241,
+        0.055654156998571125,
+        0.19600628599982883,
+        0.0912285989998054,
+        0.2088248760010174,
+        0.10924863600121171
+      ],
+      "batch_pass_seconds": [
+        3.500666027000989,
+        3.578396965000138,
+        3.5222487060000276
+      ],
+      "batch_sentences_per_second": 36.34042076073631,
+      "examples": [
+        {
+          "source": "• the capital cost of your rental property.",
+          "hypothesis": "• le coût en capital de votre bien de location."
+        },
+        {
+          "source": "I don't believe you.",
+          "hypothesis": "Je ne crois pas."
+        },
+        {
+          "source": "• Decreased risk of environmental pollution",
+          "hypothesis": "• Diminution du risque de pollution de l'environnement"
+        },
+        {
+          "source": "People change.",
+          "hypothesis": "Les gens changent."
+        },
+        {
+          "source": "So we're engaged in an important exercise.",
+          "hypothesis": "Nous nous sommes engagés dans un exercice important."
+        },
+        {
+          "source": "Tom is in Boston with Mary.",
+          "hypothesis": "Tom est à Boston avec Mary."
+        },
+        {
+          "source": "• determining their useful life; and",
+          "hypothesis": "• déterminer leur vie utile;"
+        },
+        {
+          "source": "I'm waiting for my friend.",
+          "hypothesis": "Je suis attenattenmon mon ami."
+        },
+        {
+          "source": "See in particular the two documents of consultation of the social partners:",
+          "hypothesis": "Voir en particulier les deux documents de consultation des partenaires sociaux:"
+        },
+        {
+          "source": "These cups are too small.",
+          "hypothesis": "Ces coupes sont trop petites."
+        },
+        {
+          "source": "BASIS:",
+          "hypothesis": "BASE:"
+        },
+        {
+          "source": "This apple is rotten.",
+          "hypothesis": "Cette pomme est rot."
+        },
+        {
+          "source": "The New York Times Magazine, 28 January 2001. www.nytimes.com/library/magazine/home/20020228mag-aids.html. 22.",
+          "hypothesis": "The New York Times Magazine, 28 janvier 2001. www. nyo. com / library / magazine / home / 20020228ma-aids. html. 22."
+        },
+        {
+          "source": "Tom knows who I am.",
+          "hypothesis": "Tom connaît qui je suis."
+        },
+        {
+          "source": "\"The Rise of Global Value Chains\" that was written by Aaron Sydor.",
+          "hypothesis": "« The Rise of Global Value Chain », a été rédigé par Aaron Sydor."
+        },
+        {
+          "source": "Please remind me to write a letter tomorrow.",
+          "hypothesis": "Veuillez vous rappeler que vous écrivez une lettre demain."
+        },
+        {
+          "source": "Establishing an EDRC review of Community economic policies The Commission proposes that:",
+          "hypothesis": "Création d'un examen des politiques communautaires communautaires communautaires Commission Commission propose que:"
+        },
+        {
+          "source": "What do I owe Tom?",
+          "hypothesis": "Que faire -je?"
+        },
+        {
+          "source": "(1) Cephalotus follicularis #1 II 1.12.0 COMPOSITAE (ASTERACEAE)",
+          "hypothesis": "( 1) Cepphaltus follicularis 1 1 1 1. 12. 0 COPOSITAIRE ( ASTERACEA)"
+        },
+        {
+          "source": "My daughter's getting all gussied up for her first date.",
+          "hypothesis": "Mon fille a gagntout d'abord pour sa première pour sa première."
+        },
+        {
+          "source": "▪ Non-Resident School Fees Associated with Provincial Public Education in Canada.",
+          "hypothesis": "▪ Frais scolaires non résidents de à l'enseignement public provincial au Canada."
+        },
+        {
+          "source": "I prefer being poor to being rich.",
+          "hypothesis": "Je préfère être pauvres à être riches."
+        },
+        {
+          "source": "Demonstration – We will now create a new page",
+          "hypothesis": "Démonstration – Nous créons maintenant une nouvelle page"
+        },
+        {
+          "source": "Go look for it.",
+          "hypothesis": "Passez de voir."
+        },
+        {
+          "source": "Fish-pass in Saint-Ours Canal National Historic Site of Canada",
+          "hypothesis": "Lieu de du Canada historique national du Canada du Canal du Saint-Ours Saint-Ours"
+        },
+        {
+          "source": "Are these real?",
+          "hypothesis": "Est-ce que ces réels?"
+        },
+        {
+          "source": "Publication information QuÃ©bec, QuÃ©bec: s.n., 1891 Guerre du Canada, 1756-1760 :",
+          "hypothesis": "Informations sur cette publication QuÃ © bec, QuÃ © bec: s. n., 1891 Guerre du Canada, 1756-1760:"
+        },
+        {
+          "source": "I get stage fright.",
+          "hypothesis": "Je ’ ai la foi de étape."
+        },
+        {
+          "source": "The series was watched by more than two million Canadians per episode.",
+          "hypothesis": "La série a été été plus de plus de deux millions de Canadiens par épisode."
+        },
+        {
+          "source": "It was a partial success.",
+          "hypothesis": "C ’ est un succès partial."
+        },
+        {
+          "source": "2.2. discontinuation of deliveries until further notice, to limit our losses",
+          "hypothesis": "2. 2. Délimination des livraisons jusqu ’ à ce que ’ à la suite de"
+        },
+        {
+          "source": "Can you make the deadline?",
+          "hypothesis": "Pouvez-vous faire la délai?"
+        },
+        {
+          "source": "• Aboriginal Communities Home > New Brunswick > Oromocto Oromocto Community:",
+          "hypothesis": "• Collectivités autochtones Accueil > Nouveau-Brunswick > Oromocto Oomocto to Community:"
+        },
+        {
+          "source": "I hope you find what you're looking for.",
+          "hypothesis": "J'espère que vous vous cherez ez."
+        },
+        {
+          "source": "WLAV LE Definition 8.",
+          "hypothesis": "VALVA Définition 8."
+        },
+        {
+          "source": "Cars built nowadays are different from the ones built in the 70's.",
+          "hypothesis": "Les voitures construites sont aujourd'hui des des des des des années."
+        },
+        {
+          "source": "If purpose is achieved, what assumptions must hold true to reach Objectives?",
+          "hypothesis": "Si le but est atteint, quelles hypothèses doivent être vraies pour atteindre atteindre objectifs objectifs?"
+        },
+        {
+          "source": "Tom felt safe.",
+          "hypothesis": "Tom est sait sûr."
+        },
+        {
+          "source": "Next teleconference and meeting Meeting: October 30, 1996.",
+          "hypothesis": "Prochaine conférence et réunion réunion: 30 octobre 1996."
+        },
+        {
+          "source": "I haven't broken a Christmas ornament in years.",
+          "hypothesis": "Je ne suis pas pas pas é orororde Noël en années."
+        },
+        {
+          "source": "The Commission shall comprise nine members.",
+          "hypothesis": "La Commission comprend neuf membres."
+        },
+        {
+          "source": "It is their only choice.",
+          "hypothesis": "C'est ’ est le seul choix."
+        },
+        {
+          "source": "The scorecard also assigns individual ownership to operational objectives or initiatives.",
+          "hypothesis": "Le carte de également attribue également la propriété individuelle aux objectifs ou aux opérationnels."
+        },
+        {
+          "source": "Okinawa is the southernmost island in Japan.",
+          "hypothesis": "Okkawa est l'île plus haute au au Japon."
+        },
+        {
+          "source": "Retrofit and redesign these communities, or retreat from low-lying coastal areas?",
+          "hypothesis": "Rétroger et retructuces ces collectivités ou retirer des des zones côtières peu basses?"
+        },
+        {
+          "source": "He made up a story about the king.",
+          "hypothesis": "Il a fait une histoire sur"
+        },
+        {
+          "source": "Travel for selection/ networking",
+          "hypothesis": "Voyage de sélection / réseautage"
+        },
+        {
+          "source": "Never mind what she says.",
+          "hypothesis": "N'eut jamais jamais ce ce elle."
+        },
+        {
+          "source": "<!ENTITY % IAlign \"(top|middle|bottom|left|right)\">",
+          "hypothesis": "<! ENTII%% IAII\" \" ( i| | mitic | | ttom | gauche | droite) \" >"
+        },
+        {
+          "source": "Don't touch anything without asking.",
+          "hypothesis": "Ne pas ez pas rien sans demander."
+        },
+        {
+          "source": "◦ Adequacy of the Performance Monitoring System (PMS)",
+          "hypothesis": "◦ Pertinence du système de surveillance du rendement ( SGP)"
+        },
+        {
+          "source": "Since he was dressed in black, he looked like a priest.",
+          "hypothesis": "Depuis qu'il a été é en nnoir, il a ait un un un."
+        },
+        {
+          "source": "Infection and Immunity IMHA:",
+          "hypothesis": "Infection et immunité IALA:"
+        },
+        {
+          "source": "Why can't people hibernate?",
+          "hypothesis": "Pourquoi ne peupeupeupeupeu?"
+        },
+        {
+          "source": "And what kind of answer do you get?",
+          "hypothesis": "Et quel type de réponse vous ez-vous?"
+        },
+        {
+          "source": "I saw them.",
+          "hypothesis": "Je ’ ai vu."
+        },
+        {
+          "source": "Academic Level Master's Master's Doctoral Master's Doctoral",
+          "hypothesis": "Niveau universitaire Acatorat maîtrise maîtrise Dtortorat torat torat torat"
+        },
+        {
+          "source": "There was no swelling.",
+          "hypothesis": "Il n'y a pas de gonfl."
+        },
+        {
+          "source": "Sentences for the importation of narcotics and other illegal drugs are severe.",
+          "hypothesis": "Les sanctions pour l importation importation de stupéfiants et d drogues illégales sont graves."
+        },
+        {
+          "source": "I think you're sitting in my seat.",
+          "hypothesis": "Je pense que vous assiez dans mon siège."
+        }
+      ]
+    },
+    "model-100mil.pth": {
+      "load_seconds": 0.7220140829995216,
+      "first_request_seconds": 0.16419739099910657,
+      "single_mean_ms": 227.2986415499266,
+      "single_median_ms": 169.35765900052502,
+      "single_p95_ms": 494.26755599961325,
+      "single_seconds": [
+        0.16328996399897733,
+        0.17384540000057314,
+        0.12281489899942244,
+        0.08764171399889165,
+        0.13679092799975479,
+        0.1515321810002206,
+        0.09579183700043359,
+        0.1384098680009629,
+        0.1648699180004769,
+        0.1108856039991224,
+        0.06877640099992277,
+        0.16417185199861706,
+        0.6987961909999285,
+        0.11307648100046208,
+        0.33963204999963637,
+        0.15341613399868947,
+        0.243460984000194,
+        0.16187279500081786,
+        0.47039944700009073,
+        0.23424137999973027,
+        0.26613102599912963,
+        0.17436955899938766,
+        0.1785349750007299,
+        0.09523244599949976,
+        0.2823290680007631,
+        0.10941532399920106,
+        0.5189278819998435,
+        0.13588400699882186,
+        0.27325354000095103,
+        0.10996864499975345,
+        0.33559825500014995,
+        0.1255624559998978,
+        0.3083499669992307,
+        0.1869121229992743,
+        0.14778953899985936,
+        0.25851070399949094,
+        0.2570585659996141,
+        1.289460196001528,
+        0.18986271399990073,
+        0.2825830319998204,
+        0.09624210400033917,
+        0.12343677799981378,
+        0.25651647499944374,
+        0.21588849799991294,
+        0.3284171699997387,
+        0.1619554099997913,
+        0.1775454240014369,
+        0.12314394500026538,
+        0.49426755599961325,
+        0.1527040050004871,
+        0.21532718099842896,
+        0.29237732000001415,
+        0.15436074100034602,
+        0.16271175500151003,
+        0.1358262220001052,
+        0.09594879399992351,
+        0.31055025100067724,
+        0.16053476799970667,
+        0.2841524989999016,
+        0.17656154500036791
+      ],
+      "batch_pass_seconds": [
+        6.864404392001234,
+        6.821914685000593,
+        6.808133385999099
+      ],
+      "batch_sentences_per_second": 18.763060798962318,
+      "examples": [
+        {
+          "source": "• the capital cost of your rental property.",
+          "hypothesis": "• le coût en capital de vos biens de location."
+        },
+        {
+          "source": "I don't believe you.",
+          "hypothesis": "Je ne crois pas que vous ne le pensez."
+        },
+        {
+          "source": "• Decreased risk of environmental pollution",
+          "hypothesis": "• Risque accru de pollution environnementale"
+        },
+        {
+          "source": "People change.",
+          "hypothesis": "Les gens changent."
+        },
+        {
+          "source": "So we're engaged in an important exercise.",
+          "hypothesis": "Nous avons donc participé à un exercice important."
+        },
+        {
+          "source": "Tom is in Boston with Mary.",
+          "hypothesis": "Tom est à Boston avec Mary."
+        },
+        {
+          "source": "• determining their useful life; and",
+          "hypothesis": "• déterminer leur vie utile;"
+        },
+        {
+          "source": "I'm waiting for my friend.",
+          "hypothesis": "Je suis attendu pour mon ami."
+        },
+        {
+          "source": "See in particular the two documents of consultation of the social partners:",
+          "hypothesis": "Voir notamment les deux documents de consultation des partenaires sociaux:"
+        },
+        {
+          "source": "These cups are too small.",
+          "hypothesis": "Ces cessions sont trop petites."
+        },
+        {
+          "source": "BASIS:",
+          "hypothesis": "BIEN :"
+        },
+        {
+          "source": "This apple is rotten.",
+          "hypothesis": "Cette pomme est riche en flèche."
+        },
+        {
+          "source": "The New York Times Magazine, 28 January 2001. www.nytimes.com/library/magazine/home/20020228mag-aids.html. 22.",
+          "hypothesis": "The New York Times Magazine, 28 janvier 2001. www.nyararo.com/library/magazine/home/20020228mai-apides.html. 22."
+        },
+        {
+          "source": "Tom knows who I am.",
+          "hypothesis": "Tom sait show."
+        },
+        {
+          "source": "\"The Rise of Global Value Chains\" that was written by Aaron Sydor.",
+          "hypothesis": "« The Rise of Global Value Chains », rédigé par Aaron Sydor."
+        },
+        {
+          "source": "Please remind me to write a letter tomorrow.",
+          "hypothesis": "Veuillez me rappeler à la lettre demain."
+        },
+        {
+          "source": "Establishing an EDRC review of Community economic policies The Commission proposes that:",
+          "hypothesis": "Établissement d'un examen du CEDR sur les politiques économiques communautaires La Commission propose:"
+        },
+        {
+          "source": "What do I owe Tom?",
+          "hypothesis": "Qu’est-ce que je suis en liberté?"
+        },
+        {
+          "source": "(1) Cephalotus follicularis #1 II 1.12.0 COMPOSITAE (ASTERACEAE)",
+          "hypothesis": "(1) Cephalotus follicularis #1 II 1.12.0 COMPOSITAE (ASTERACEAE)"
+        },
+        {
+          "source": "My daughter's getting all gussied up for her first date.",
+          "hypothesis": "Mon fille a tous été goûtée pour sa première date."
+        },
+        {
+          "source": "▪ Non-Resident School Fees Associated with Provincial Public Education in Canada.",
+          "hypothesis": "▪ Les frais de scolarité non résidants associés à l’éducation publique provinciale au Canada."
+        },
+        {
+          "source": "I prefer being poor to being rich.",
+          "hypothesis": "Je préfère être pauvres pour être riche."
+        },
+        {
+          "source": "Demonstration – We will now create a new page",
+          "hypothesis": "Démonstration – Nous créerons maintenant une nouvelle page"
+        },
+        {
+          "source": "Go look for it.",
+          "hypothesis": "Regardez-le."
+        },
+        {
+          "source": "Fish-pass in Saint-Ours Canal National Historic Site of Canada",
+          "hypothesis": "Lieu historique national du Canada du Canal-de-Malit-de-Saint-Laurent"
+        },
+        {
+          "source": "Are these real?",
+          "hypothesis": "Ces derniers sont-ils vraiment?"
+        },
+        {
+          "source": "Publication information QuÃ©bec, QuÃ©bec: s.n., 1891 Guerre du Canada, 1756-1760 :",
+          "hypothesis": "Informations sur cette publication QuÃ©bec, QuÃ©bec: s.n., 1891 Guerre du Canada, 1756-1760 :"
+        },
+        {
+          "source": "I get stage fright.",
+          "hypothesis": "Je suis arrivé à la première fois."
+        },
+        {
+          "source": "The series was watched by more than two million Canadians per episode.",
+          "hypothesis": "La série a été remontée par plus de deux millions de Canadiens par épisode."
+        },
+        {
+          "source": "It was a partial success.",
+          "hypothesis": "Il s'agissait d'un succès partiel."
+        },
+        {
+          "source": "2.2. discontinuation of deliveries until further notice, to limit our losses",
+          "hypothesis": "2.2. supprimé des livraisons jusqu'à ce que les avis soient encore plus importants, afin de limiter les pertes"
+        },
+        {
+          "source": "Can you make the deadline?",
+          "hypothesis": "Pouvez-vous faire la date limite?"
+        },
+        {
+          "source": "• Aboriginal Communities Home > New Brunswick > Oromocto Oromocto Community:",
+          "hypothesis": "• Collectivités autochtones Accueil > Nouveau-Brunswick > Oromocto Oomocto Collectivité :"
+        },
+        {
+          "source": "I hope you find what you're looking for.",
+          "hypothesis": "J'espère que vous trouverez ce que vous recherchez."
+        },
+        {
+          "source": "WLAV LE Definition 8.",
+          "hypothesis": "SURVEILLANCE Définition 8."
+        },
+        {
+          "source": "Cars built nowadays are different from the ones built in the 70's.",
+          "hypothesis": "Les voitures construites sont nettement différentes des deux édifices des années 70."
+        },
+        {
+          "source": "If purpose is achieved, what assumptions must hold true to reach Objectives?",
+          "hypothesis": "Si les objectifs sont atteints, quelles hypothèses doivent être vérifiées pour atteindre les objectifs?"
+        },
+        {
+          "source": "Tom felt safe.",
+          "hypothesis": "Trop show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show show s"
+        },
+        {
+          "source": "Next teleconference and meeting Meeting: October 30, 1996.",
+          "hypothesis": "Prochaine réunion et réunion Réunion : le 30 octobre 1996."
+        },
+        {
+          "source": "I haven't broken a Christmas ornament in years.",
+          "hypothesis": "Je ne me suis pas reproduit un ornithoeur de Noël en années."
+        },
+        {
+          "source": "The Commission shall comprise nine members.",
+          "hypothesis": "La Commission comprend neuf membres."
+        },
+        {
+          "source": "It is their only choice.",
+          "hypothesis": "C'est seulement le choix de ce choix."
+        },
+        {
+          "source": "The scorecard also assigns individual ownership to operational objectives or initiatives.",
+          "hypothesis": "Le tableau de bord attribue également une propriété individuelle aux objectifs ou aux activités opérationnels."
+        },
+        {
+          "source": "Okinawa is the southernmost island in Japan.",
+          "hypothesis": "Okininwa est le sud-ouest du Nord, le Japon."
+        },
+        {
+          "source": "Retrofit and redesign these communities, or retreat from low-lying coastal areas?",
+          "hypothesis": "Refroyer et reconstruire ces communautés ou la réversion des zones côtières basses?"
+        },
+        {
+          "source": "He made up a story about the king.",
+          "hypothesis": "Il a fait une histoire sur le roi."
+        },
+        {
+          "source": "Travel for selection/ networking",
+          "hypothesis": "Voyage pour la sélection/budgeau-média"
+        },
+        {
+          "source": "Never mind what she says.",
+          "hypothesis": "Ne jamais savoir ce qu'elle dit."
+        },
+        {
+          "source": "<!ENTITY % IAlign \"(top|middle|bottom|left|right)\">",
+          "hypothesis": "<!ENENTITY% Icigig \" (top|middle|bottom|light) drug)"
+        },
+        {
+          "source": "Don't touch anything without asking.",
+          "hypothesis": "Ne touchez rien sans demander de réponse."
+        },
+        {
+          "source": "◦ Adequacy of the Performance Monitoring System (PMS)",
+          "hypothesis": "◦ Adéquation du Système de surveillance du rendement (SGI)"
+        },
+        {
+          "source": "Since he was dressed in black, he looked like a priest.",
+          "hypothesis": "Comme il a été vécu en noir, il regardait comme un prêtre."
+        },
+        {
+          "source": "Infection and Immunity IMHA:",
+          "hypothesis": "Infection et immunités IALA :"
+        },
+        {
+          "source": "Why can't people hibernate?",
+          "hypothesis": "Pourquoi ne pas ne pas hiberner?"
+        },
+        {
+          "source": "And what kind of answer do you get?",
+          "hypothesis": "Et quel genre de réponse vous donnez-vous?"
+        },
+        {
+          "source": "I saw them.",
+          "hypothesis": "Je les ai vu."
+        },
+        {
+          "source": "Academic Level Master's Master's Doctoral Master's Doctoral",
+          "hypothesis": "Doctorat de la maîtrise des doctorats de la maîtrise des doctorats de maîtrise masculin"
+        },
+        {
+          "source": "There was no swelling.",
+          "hypothesis": "Il n'y avait pas de non-décension."
+        },
+        {
+          "source": "Sentences for the importation of narcotics and other illegal drugs are severe.",
+          "hypothesis": "Les peines pour l'importation de narcotiques et d'autres drogues illicites sont graves."
+        },
+        {
+          "source": "I think you're sitting in my seat.",
+          "hypothesis": "Je crois que vous êtes assis dans mon siège."
+        }
+      ]
+    }
+  }
+}

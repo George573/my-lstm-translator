@@ -1,0 +1,1545 @@
+[
+  {
+    "path": "/home/unicorn/checkpoints/model-10-layers-expanded.pth",
+    "name": "model-10-layers-expanded.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 10,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 47311259,
+    "metadata": {
+      "expansion": {
+        "source_checkpoint": "/home/unicorn/my-lstm-translator/artifacts/checkpoints/model-32mil-param-quick-tf-decay.latest.pth",
+        "source_metadata": {
+          "global_step": 214012,
+          "incomplete": true,
+          "model_config": {
+            "hidden_size": 256,
+            "num_layers": 6,
+            "embedding_dim": 42,
+            "dropout": 0.1,
+            "attention": true
+          },
+          "training_config": {
+            "epochs": 1000,
+            "batch_size": 400,
+            "learning_rate": 0.001,
+            "validation_fraction": 0.01,
+            "teacher_forcing_start": 1.0,
+            "teacher_forcing_end": 0.2,
+            "teacher_forcing_decay_epochs": 25,
+            "patience": 5,
+            "min_delta": 0.01,
+            "gradient_clip": 1.0,
+            "seed": 42,
+            "show_progress": true
+          }
+        },
+        "old_layers": 6,
+        "new_layers": 10,
+        "seed": 42
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-256-6-13-09-09-33.latest.pth",
+    "name": "model-256-6-13-09-09-33.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 53503,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 53503,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.2,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      }
+    ],
+    "teacher_forcing_ratio": 0.9680000119621651,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-256-6.latest.pth",
+    "name": "model-256-6.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 53503,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 53503,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.2,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      }
+    ],
+    "teacher_forcing_ratio": 0.9680000119621651,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-256-6.pth",
+    "name": "model-256-6.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "best_epoch": 1,
+      "validation_loss": 9.429785940187786,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param-no-tf.latest.pth",
+    "name": "model-32mil-param-no-tf.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 228000,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.0,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 228000,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.0,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.9747277178645133,
+        "validation_loss": 9.546389709262673,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 8,
+        "train_loss": 2.0134618086338043,
+        "validation_loss": 9.2220463621507,
+        "teacher_forcing_ratio": 0.9424000115634262
+      },
+      {
+        "epoch": 9,
+        "train_loss": 2.0569518813967704,
+        "validation_loss": 9.016924429377285,
+        "teacher_forcing_ratio": 0.9168000111646875
+      },
+      {
+        "epoch": 10,
+        "train_loss": 2.0992939599752427,
+        "validation_loss": 8.717995228898635,
+        "teacher_forcing_ratio": 0.8912000107659486
+      },
+      {
+        "epoch": 11,
+        "train_loss": 2.145539449977875,
+        "validation_loss": 8.551370940952125,
+        "teacher_forcing_ratio": 0.8656000103672098
+      },
+      {
+        "epoch": 12,
+        "train_loss": 2.1294576653813486,
+        "validation_loss": 8.544843066504242,
+        "teacher_forcing_ratio": 0.8656000103672098
+      },
+      {
+        "epoch": 13,
+        "train_loss": 2.296491608810425,
+        "validation_loss": 8.156772932000116,
+        "teacher_forcing_ratio": 0.7990400093304888
+      },
+      {
+        "epoch": 14,
+        "train_loss": 2.459705102324486,
+        "validation_loss": 7.704156406647568,
+        "teacher_forcing_ratio": 0.7324800082937678
+      },
+      {
+        "epoch": 15,
+        "train_loss": 2.6282639270305634,
+        "validation_loss": 7.459451824153235,
+        "teacher_forcing_ratio": 0.6659200072570469
+      },
+      {
+        "epoch": 16,
+        "train_loss": 2.800984746813774,
+        "validation_loss": 7.157686875719543,
+        "teacher_forcing_ratio": 0.5993600062203259
+      },
+      {
+        "epoch": 17,
+        "train_loss": 2.9845881589889527,
+        "validation_loss": 6.811911253097954,
+        "teacher_forcing_ratio": 0.5328000051836049
+      },
+      {
+        "epoch": 18,
+        "train_loss": 3.1828465394350314,
+        "validation_loss": 6.537768596684167,
+        "teacher_forcing_ratio": 0.466240004146884
+      },
+      {
+        "epoch": 19,
+        "train_loss": 3.3919928477048873,
+        "validation_loss": 6.310209409031299,
+        "teacher_forcing_ratio": 0.399680003110163
+      },
+      {
+        "epoch": 20,
+        "train_loss": 3.614941450071335,
+        "validation_loss": 6.055063975622895,
+        "teacher_forcing_ratio": 0.33312000207344195
+      },
+      {
+        "epoch": 21,
+        "train_loss": 3.851987496495247,
+        "validation_loss": 5.580912682769496,
+        "teacher_forcing_ratio": 0.26656000103672106
+      },
+      {
+        "epoch": 22,
+        "train_loss": 4.104989253234863,
+        "validation_loss": 5.381195315089794,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 23,
+        "train_loss": 4.09215482583046,
+        "validation_loss": 5.328734745235618,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 24,
+        "train_loss": 4.083000678863656,
+        "validation_loss": 5.28472253729444,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 25,
+        "train_loss": 4.069419649910927,
+        "validation_loss": 5.404785580591324,
+        "teacher_forcing_ratio": 0.20000000000000007
+      }
+    ],
+    "teacher_forcing_ratio": 0.20000000000000007,
+    "teacher_forcing_schedule": {
+      "start_epoch": 26,
+      "start_ratio": 0.20000000000000007,
+      "end_ratio": 0.0,
+      "decay_epochs": 2
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param-quick-tf-decay.latest.pth",
+    "name": "model-32mil-param-quick-tf-decay.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 224012,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 224012,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.2,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.9747277178645133,
+        "validation_loss": 9.546389709262673,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 8,
+        "train_loss": 2.0134618086338043,
+        "validation_loss": 9.2220463621507,
+        "teacher_forcing_ratio": 0.9424000115634262
+      },
+      {
+        "epoch": 9,
+        "train_loss": 2.0569518813967704,
+        "validation_loss": 9.016924429377285,
+        "teacher_forcing_ratio": 0.9168000111646875
+      },
+      {
+        "epoch": 10,
+        "train_loss": 2.0992939599752427,
+        "validation_loss": 8.717995228898635,
+        "teacher_forcing_ratio": 0.8912000107659486
+      },
+      {
+        "epoch": 11,
+        "train_loss": 2.145539449977875,
+        "validation_loss": 8.551370940952125,
+        "teacher_forcing_ratio": 0.8656000103672098
+      },
+      {
+        "epoch": 12,
+        "train_loss": 2.1294576653813486,
+        "validation_loss": 8.544843066504242,
+        "teacher_forcing_ratio": 0.8656000103672098
+      },
+      {
+        "epoch": 13,
+        "train_loss": 2.296491608810425,
+        "validation_loss": 8.156772932000116,
+        "teacher_forcing_ratio": 0.7990400093304888
+      },
+      {
+        "epoch": 14,
+        "train_loss": 2.459705102324486,
+        "validation_loss": 7.704156406647568,
+        "teacher_forcing_ratio": 0.7324800082937678
+      },
+      {
+        "epoch": 15,
+        "train_loss": 2.6282639270305634,
+        "validation_loss": 7.459451824153235,
+        "teacher_forcing_ratio": 0.6659200072570469
+      },
+      {
+        "epoch": 16,
+        "train_loss": 2.800984746813774,
+        "validation_loss": 7.157686875719543,
+        "teacher_forcing_ratio": 0.5993600062203259
+      },
+      {
+        "epoch": 17,
+        "train_loss": 2.9845881589889527,
+        "validation_loss": 6.811911253097954,
+        "teacher_forcing_ratio": 0.5328000051836049
+      },
+      {
+        "epoch": 18,
+        "train_loss": 3.1828465394350314,
+        "validation_loss": 6.537768596684167,
+        "teacher_forcing_ratio": 0.466240004146884
+      },
+      {
+        "epoch": 19,
+        "train_loss": 3.3919928477048873,
+        "validation_loss": 6.310209409031299,
+        "teacher_forcing_ratio": 0.399680003110163
+      },
+      {
+        "epoch": 20,
+        "train_loss": 3.614941450071335,
+        "validation_loss": 6.055063975622895,
+        "teacher_forcing_ratio": 0.33312000207344195
+      },
+      {
+        "epoch": 21,
+        "train_loss": 3.851987496495247,
+        "validation_loss": 5.580912682769496,
+        "teacher_forcing_ratio": 0.26656000103672106
+      },
+      {
+        "epoch": 22,
+        "train_loss": 4.104989253234863,
+        "validation_loss": 5.381195315089794,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 23,
+        "train_loss": 4.09215482583046,
+        "validation_loss": 5.328734745235618,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 24,
+        "train_loss": 4.083000678863656,
+        "validation_loss": 5.28472253729444,
+        "teacher_forcing_ratio": 0.20000000000000007
+      },
+      {
+        "epoch": 25,
+        "train_loss": 4.069419649910927,
+        "validation_loss": 5.404785580591324,
+        "teacher_forcing_ratio": 0.20000000000000007
+      }
+    ],
+    "teacher_forcing_ratio": 0.20000000000000007,
+    "teacher_forcing_schedule": {
+      "start_epoch": 12,
+      "start_ratio": 0.8656000103672098,
+      "end_ratio": 0.2,
+      "decay_epochs": 10
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param-quick-tf-decay.pth",
+    "name": "model-32mil-param-quick-tf-decay.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "best_epoch": 24,
+      "validation_loss": 5.28472253729444,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param.latest.11-epoch.pth",
+    "name": "model-32mil-param.latest.11-epoch.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 103503,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 103503,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.2,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.9747277178645133,
+        "validation_loss": 9.546389709262673,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 8,
+        "train_loss": 2.0134618086338043,
+        "validation_loss": 9.2220463621507,
+        "teacher_forcing_ratio": 0.9424000115634262
+      },
+      {
+        "epoch": 9,
+        "train_loss": 2.0569518813967704,
+        "validation_loss": 9.016924429377285,
+        "teacher_forcing_ratio": 0.9168000111646875
+      },
+      {
+        "epoch": 10,
+        "train_loss": 2.0992939599752427,
+        "validation_loss": 8.717995228898635,
+        "teacher_forcing_ratio": 0.8912000107659486
+      },
+      {
+        "epoch": 11,
+        "train_loss": 2.145539449977875,
+        "validation_loss": 8.551370940952125,
+        "teacher_forcing_ratio": 0.8656000103672098
+      }
+    ],
+    "teacher_forcing_ratio": 0.8656000103672098,
+    "teacher_forcing_schedule": {
+      "start_epoch": 7,
+      "start_ratio": 0.9680000119621651,
+      "end_ratio": 0.2,
+      "decay_epochs": 30
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param.latest.pth",
+    "name": "model-32mil-param.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "global_step": 103503,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 103503,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 0.2,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 3.7548028342008593,
+        "validation_loss": 9.429785940187786,
+        "teacher_forcing_ratio": 0.9940195155248344
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.489305041861534,
+        "validation_loss": 9.661432245237018,
+        "teacher_forcing_ratio": 0.9880384329414105
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.2307481171011925,
+        "validation_loss": 9.641002772269992,
+        "teacher_forcing_ratio": 0.9820573503579865
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.110616111385822,
+        "validation_loss": 9.601416547582783,
+        "teacher_forcing_ratio": 0.9760762677745626
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.042736410796642,
+        "validation_loss": 9.554430937110832,
+        "teacher_forcing_ratio": 0.9700951851911386
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0103774627480817,
+        "validation_loss": 9.516541265785147,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.9747277178645133,
+        "validation_loss": 9.546389709262673,
+        "teacher_forcing_ratio": 0.9680000119621651
+      },
+      {
+        "epoch": 8,
+        "train_loss": 2.0134618086338043,
+        "validation_loss": 9.2220463621507,
+        "teacher_forcing_ratio": 0.9424000115634262
+      },
+      {
+        "epoch": 9,
+        "train_loss": 2.0569518813967704,
+        "validation_loss": 9.016924429377285,
+        "teacher_forcing_ratio": 0.9168000111646875
+      },
+      {
+        "epoch": 10,
+        "train_loss": 2.0992939599752427,
+        "validation_loss": 8.717995228898635,
+        "teacher_forcing_ratio": 0.8912000107659486
+      },
+      {
+        "epoch": 11,
+        "train_loss": 2.145539449977875,
+        "validation_loss": 8.551370940952125,
+        "teacher_forcing_ratio": 0.8656000103672098
+      }
+    ],
+    "teacher_forcing_ratio": 0.8656000103672098,
+    "teacher_forcing_schedule": {
+      "start_epoch": 7,
+      "start_ratio": 0.9680000119621651,
+      "end_ratio": 0.2,
+      "decay_epochs": 30
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-32mil-param.pth",
+    "name": "model-32mil-param.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 6,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 32598427,
+    "metadata": {
+      "best_epoch": 11,
+      "validation_loss": 8.551370940952125,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 6,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 1000,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 0.2,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-8-layers-expanded.pth",
+    "name": "model-8-layers-expanded.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 8,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 39954843,
+    "metadata": {
+      "expansion": {
+        "source_checkpoint": "/home/unicorn/my-lstm-translator/artifacts/checkpoints/model-32mil-param-quick-tf-decay.latest.pth",
+        "source_metadata": {
+          "global_step": 214012,
+          "incomplete": true,
+          "model_config": {
+            "hidden_size": 256,
+            "num_layers": 6,
+            "embedding_dim": 42,
+            "dropout": 0.1,
+            "attention": true
+          },
+          "training_config": {
+            "epochs": 1000,
+            "batch_size": 400,
+            "learning_rate": 0.001,
+            "validation_fraction": 0.01,
+            "teacher_forcing_start": 1.0,
+            "teacher_forcing_end": 0.2,
+            "teacher_forcing_decay_epochs": 25,
+            "patience": 5,
+            "min_delta": 0.01,
+            "gradient_clip": 1.0,
+            "seed": 42,
+            "show_progress": true
+          }
+        },
+        "old_layers": 6,
+        "new_layers": 8,
+        "seed": 42
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-expanded.latest.pth",
+    "name": "model-expanded.latest.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 10,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 47311259,
+    "metadata": {
+      "global_step": 64000,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 10,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 100,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 0.2,
+        "teacher_forcing_end": 0.0,
+        "teacher_forcing_decay_epochs": 5,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": 64000,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 0.2,
+      "teacher_forcing_end": 0.0,
+      "teacher_forcing_decay_epochs": 5,
+      "patience": 5,
+      "min_delta": 0.01,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 10000,
+      "validation_steps": 1000
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 4.3941755555152895,
+        "validation_loss": 5.363418390116561,
+        "teacher_forcing_ratio": 0.2
+      },
+      {
+        "epoch": 2,
+        "train_loss": 4.308086265420914,
+        "validation_loss": 5.186362791498866,
+        "teacher_forcing_ratio": 0.16
+      },
+      {
+        "epoch": 3,
+        "train_loss": 4.416143486595153,
+        "validation_loss": 5.041855647585807,
+        "teacher_forcing_ratio": 0.12
+      },
+      {
+        "epoch": 4,
+        "train_loss": 4.546824307203293,
+        "validation_loss": 4.908511681512955,
+        "teacher_forcing_ratio": 0.08000000000000002
+      },
+      {
+        "epoch": 5,
+        "train_loss": 4.679699001693725,
+        "validation_loss": 4.7812858529047135,
+        "teacher_forcing_ratio": 0.03999999999999998
+      },
+      {
+        "epoch": 6,
+        "train_loss": 4.785835334719027,
+        "validation_loss": 4.7162414305800695,
+        "teacher_forcing_ratio": 0.0
+      },
+      {
+        "epoch": 7,
+        "train_loss": 4.760802606105805,
+        "validation_loss": 4.701254505192468,
+        "teacher_forcing_ratio": 0.0
+      }
+    ],
+    "teacher_forcing_ratio": 0.0,
+    "teacher_forcing_schedule": {
+      "start_epoch": 1,
+      "start_ratio": 0.2,
+      "end_ratio": 0.0,
+      "decay_epochs": 5
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/checkpoints/model-expanded.pth",
+    "name": "model-expanded.pth",
+    "config": {
+      "hidden_size": 256,
+      "num_layers": 10,
+      "embedding_dim": 42,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 47311259,
+    "metadata": {
+      "best_epoch": 7,
+      "validation_loss": 4.701254505192468,
+      "model_config": {
+        "hidden_size": 256,
+        "num_layers": 10,
+        "embedding_dim": 42,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 100,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 0.2,
+        "teacher_forcing_end": 0.0,
+        "teacher_forcing_decay_epochs": 5,
+        "patience": 5,
+        "min_delta": 0.01,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      }
+    },
+    "global_step": null,
+    "settings": {},
+    "history": [],
+    "teacher_forcing_ratio": null,
+    "teacher_forcing_schedule": null,
+    "tokenizers": {
+      "source": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 2,
+        "text_processing_version": null,
+        "lowercase": false
+      }
+    }
+  },
+  {
+    "path": "/home/unicorn/new_model/checkpoints/model-100mil.latest.pth",
+    "name": "model-100mil.latest.pth",
+    "config": {
+      "hidden_size": 300,
+      "num_layers": 6,
+      "embedding_dim": 84,
+      "dropout": 0.1,
+      "attention": true
+    },
+    "parameters": 47735004,
+    "metadata": {
+      "global_step": 52753,
+      "incomplete": true,
+      "model_config": {
+        "hidden_size": 300,
+        "num_layers": 6,
+        "embedding_dim": 84,
+        "dropout": 0.1,
+        "attention": true
+      },
+      "training_config": {
+        "epochs": 50,
+        "batch_size": 400,
+        "learning_rate": 0.001,
+        "validation_fraction": 0.01,
+        "teacher_forcing_start": 1.0,
+        "teacher_forcing_end": 1.0,
+        "teacher_forcing_decay_epochs": 25,
+        "patience": 3,
+        "min_delta": 0.001,
+        "gradient_clip": 1.0,
+        "seed": 42,
+        "show_progress": true
+      },
+      "loss_aggregation": "non-padding-token-mean",
+      "validation_teacher_forcing": "training",
+      "source_typo_probability": 0.23,
+      "source_typo_backend": "nlpaug",
+      "source_typo_options": {
+        "aug_char_p": 0.1,
+        "aug_word_p": 0.1,
+        "aug_char_min": 1,
+        "aug_word_min": 1,
+        "aug_char_max": 1,
+        "aug_word_max": 3,
+        "include_special_char": false,
+        "include_numeric": false,
+        "lang": "en"
+      },
+      "partition_scheme": "normalized-source-v1"
+    },
+    "global_step": 52753,
+    "settings": {
+      "batch_size": 400,
+      "learning_rate": 0.001,
+      "validation_fraction": 0.01,
+      "teacher_forcing_start": 1.0,
+      "teacher_forcing_end": 1.0,
+      "teacher_forcing_decay_epochs": 25,
+      "patience": 3,
+      "min_delta": 0.001,
+      "gradient_clip": 1.0,
+      "seed": 42,
+      "steps_per_epoch": 5000,
+      "validation_steps": 1000,
+      "validation_teacher_forcing": "training"
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 4.61991587690878,
+        "validation_loss": 3.251696378796066,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.906622508335652,
+        "validation_loss": 2.4852167691437677,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 3,
+        "train_loss": 2.4307259326298807,
+        "validation_loss": 2.193272916285925,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 4,
+        "train_loss": 2.2184547352279504,
+        "validation_loss": 2.0406600112989586,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 5,
+        "train_loss": 2.097071065072036,
+        "validation_loss": 1.9520682983915885,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 6,
+        "train_loss": 2.0158071154670947,
+        "validation_loss": 1.8848007083106668,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.9571780321242513,
+        "validation_loss": 1.8320025159108884,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 8,
+        "train_loss": 1.912910506740695,
+        "validation_loss": 1.789417164540752,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 9,
+        "train_loss": 1.875944939430336,
+        "validation_loss": 1.7584904082472914,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 10,
+        "train_loss": 1.845499050338781,
+        "validation_loss": 1.7325125990006172,
+        "teacher_forcing_ratio": 1.0
+      },
+      {
+        "epoch": 11,
+        "train_loss": 1.8258469315930808,
+        "validation_loss": 1.7238546128461543,
+        "teacher_forcing_ratio": 1.0
+      }
+    ],
+    "teacher_forcing_ratio": 1.0,
+    "teacher_forcing_schedule": {
+      "start_epoch": 1,
+      "start_ratio": 1.0,
+      "end_ratio": 1.0,
+      "decay_epochs": 25
+    },
+    "tokenizers": {
+      "source": {
+        "format_version": 3,
+        "text_processing_version": 3,
+        "lowercase": false
+      },
+      "target": {
+        "format_version": 3,
+        "text_processing_version": 3,
+        "lowercase": false
+      }
+    }
+  }
+]

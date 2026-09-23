@@ -376,6 +376,19 @@ Type `/quit` or press Ctrl+C to exit. Use `--checkpoint PATH` to select another
 model, `--device cuda` to use a GPU, or `--max-length 200` to raise the output
 token limit.
 
+Greedy decoding is the default. To sample each next token from the model's
+probability distribution, use:
+
+```bash
+python scripts/translate.py --sample --temperature 0.8
+```
+
+In Python, use `translator.translate("How are you?", do_sample=True, temperature=0.8)`.
+Temperature must be finite and positive; values below 1 favor more likely tokens,
+while values above 1 make the distribution more uniform. It only affects sampling.
+Sampling can produce a different translation on each call. For reproducible
+sampling in the same environment, call `torch.manual_seed(42)` before translating.
+
 The former weights-only checkpoint was removed because its vocabulary was not
 stored and therefore could not be reconstructed safely.
 
@@ -391,7 +404,8 @@ information is separate from the software license in this repository.
 
 - This is an educational experiment and has not been benchmarked as a
   production translation system.
-- Inference currently uses greedy decoding rather than beam search.
+- Inference supports greedy decoding and temperature sampling; beam search is
+  not implemented.
 - The included tokenizer artifacts use the current version 3 format and text
   processing rules, including Unicode NFC normalization and punctuation-aware
   splitting. They can be loaded directly; retrain them only when changing the

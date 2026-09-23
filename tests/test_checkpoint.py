@@ -81,3 +81,23 @@ def test_translator_loads_on_cpu_and_discards_training_state(monkeypatch):
     Translator.from_checkpoint("unused.pth", "cuda")
     assert loads == ["cpu"]
     assert moves == ["cuda"]
+
+
+def test_translator_passes_sampling_options(monkeypatch):
+    from lstm_translator import LoadedCheckpoint, Translator
+    tokenizer = BPETokenizer()
+    tokenizer.train(["bonjour"], n_merges=10)
+    vocabulary = Vocabulary(tokenizer.tokens)
+    model = Seq2Seq(len(vocabulary), len(vocabulary),
+                    Seq2SeqConfig(hidden_size=2, num_layers=1, embedding_dim=2))
+    bundle = LoadedCheckpoint(model, vocabulary, vocabulary, tokenizer, tokenizer, {})
+    calls = []
+
+    def generate(source, lengths, **kwargs):
+        calls.append(kwargs)
+        return torch.tensor([[*vocabulary.encode(tokenizer.encode("bonjour")), 2]])
+
+    monkeypatch.setattr(model, "generate", generate)
+    result = Translator(bundle).translate("bonjour", max_length=7, do_sample=True, temperature=0.8)
+    assert result == "bonjour"
+    assert calls == [{"max_length": 7, "do_sample": True, "temperature": 0.8}]

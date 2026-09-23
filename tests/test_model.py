@@ -44,6 +44,56 @@ def test_greedy_generation_has_bounded_length():
     assert generated.shape[1] <= 5
 
 
+@pytest.mark.parametrize("temperature", [0, -1, float("nan"), float("inf")])
+def test_generation_rejects_invalid_temperature(temperature):
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3))
+    with pytest.raises(ValueError, match="temperature must be finite and positive"):
+        model.generate(torch.tensor([[4, 2]]), do_sample=True, temperature=temperature)
+
+
+def test_sampling_uses_temperature_and_preserves_eos(monkeypatch):
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3))
+    inputs, distributions = [], []
+    logits = torch.arange(9, dtype=torch.float).expand(2, 1, 9)
+
+    def decode(tokens, hidden, *args):
+        inputs.append(tokens.clone())
+        return logits, hidden
+
+    def sample(probabilities, num_samples):
+        distributions.append(probabilities.clone())
+        assert num_samples == 1
+        # First item finishes immediately; its later predictions must be ignored.
+        return torch.tensor([[2], [4]]) if len(distributions) == 1 else torch.tensor([[5], [2]])
+
+    monkeypatch.setattr(model.decoder, "forward", decode)
+    monkeypatch.setattr(torch, "multinomial", sample)
+    generated = model.generate(torch.tensor([[4, 2], [5, 2]]), max_length=5,
+                               do_sample=True, temperature=0.5)
+
+    assert generated.tolist() == [[2, 2], [4, 2]]
+    assert [tokens.tolist() for tokens in inputs] == [[[1], [1]], [[2], [4]]]
+    for probabilities in distributions:
+        torch.testing.assert_close(probabilities, torch.softmax(logits[:, 0] / 0.5, dim=-1))
+
+
+def test_sampling_can_select_non_greedy_tokens_and_is_seeded():
+    model = Seq2Seq(8, 9, Seq2SeqConfig(hidden_size=4, num_layers=1, embedding_dim=3)).eval()
+    with torch.no_grad():
+        model.decoder.output.weight.zero_()
+        model.decoder.output.bias.fill_(-float("inf"))
+        model.decoder.output.bias[4:6] = 0
+    source = torch.tensor([[4, 2]]).expand(64, -1)
+    assert model.generate(source, max_length=1).unique().tolist() == [4]
+    torch.manual_seed(42)
+    sampled = model.generate(source, max_length=3, do_sample=True)
+    torch.manual_seed(42)
+    repeated = model.generate(source, max_length=3, do_sample=True)
+    assert sampled.shape == (64, 3)
+    assert sampled.unique().tolist() == [4, 5]
+    assert torch.equal(sampled, repeated)
+
+
 def reference_forward(model, source, target, lengths, ratio):
     """Original per-step projection and slice-write path for regression checks."""
     encoded, hidden = model.encoder(source, lengths)

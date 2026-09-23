@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from collections.abc import Iterable, Sequence
+import math
 
 import torch
 from torch import Tensor, nn
@@ -320,10 +321,20 @@ class Seq2Seq(nn.Module):
         source: Tensor,
         source_lengths: Tensor | None = None,
         max_length: int = 100,
+        *,
+        do_sample: bool = False,
+        temperature: float = 1.0,
     ) -> Tensor:
-        """Greedily generate target indices, stopping after ``<EOS>``."""
+        """Generate target indices until ``<EOS>`` or the length limit.
+
+        By default, select the most likely token. With ``do_sample=True``,
+        sample from the softmax distribution scaled by a positive temperature.
+        Lower temperatures concentrate probability on more likely tokens.
+        """
         if max_length < 1:
             raise ValueError("max_length must be positive")
+        if not math.isfinite(temperature) or temperature <= 0:
+            raise ValueError("temperature must be finite and positive")
         if source_lengths is None:
             source_lengths = source.ne(PAD_INDEX).sum(dim=1)
         source_mask = source.ne(PAD_INDEX)
@@ -350,7 +361,14 @@ class Seq2Seq(nn.Module):
                 source_mask,
                 projected_encoder,
             )
-            next_token = logits[:, 0].argmax(dim=-1)
+            if do_sample:
+                scores = logits[:, 0].float()
+                # Center before scaling to keep small temperatures stable.
+                scores = (scores - scores.amax(dim=-1, keepdim=True)) / temperature
+                probabilities = torch.softmax(scores, dim=-1)
+                next_token = torch.multinomial(probabilities, num_samples=1).squeeze(1)
+            else:
+                next_token = logits[:, 0].argmax(dim=-1)
             next_token = torch.where(finished, torch.full_like(next_token, EOS_INDEX), next_token)
             generated.append(next_token)
             finished |= next_token.eq(EOS_INDEX)

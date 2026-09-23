@@ -2,6 +2,7 @@
 """Translate English input interactively using a saved checkpoint."""
 
 import argparse
+import math
 from pathlib import Path
 import sys
 
@@ -21,9 +22,14 @@ def main() -> int:
     )
     parser.add_argument("--device", default="cpu", help="PyTorch device, e.g. cpu or cuda")
     parser.add_argument("--max-length", type=int, default=100, help="maximum generated tokens")
+    parser.add_argument("--sample", action="store_true", help="sample tokens instead of greedy decoding")
+    parser.add_argument("--temperature", type=float, default=1.0,
+                        help="positive sampling temperature (used with --sample; default: 1.0)")
     args = parser.parse_args()
     if args.max_length < 1:
         parser.error("--max-length must be positive")
+    if not math.isfinite(args.temperature) or args.temperature <= 0:
+        parser.error("--temperature must be finite and positive")
 
     try:
         torch.set_num_threads(4)
@@ -40,7 +46,10 @@ def main() -> int:
             if not text:
                 continue
             with torch.inference_mode():
-                translation = translator.translate(text, max_length=args.max_length)
+                translation = translator.translate(
+                    text, max_length=args.max_length,
+                    do_sample=args.sample, temperature=args.temperature,
+                )
             print(f"French translation: {translation}", flush=True)
     except (EOFError, KeyboardInterrupt):
         print()

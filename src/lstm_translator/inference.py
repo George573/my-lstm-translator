@@ -19,12 +19,19 @@ class Translator:
     ) -> "Translator":
         return cls(load_checkpoint(path, "cpu"), device)
 
-    def translate(self, text: str, max_length: int = 100) -> str:
+    def translate(
+        self, text: str, max_length: int = 100, *,
+        do_sample: bool = False, temperature: float = 1.0,
+    ) -> str:
+        """Translate greedily, or sample tokens using the given temperature."""
         tokens = self.bundle.source_tokenizer.encode(text)
         indices = self.bundle.source_vocabulary.encode(tokens) + [EOS_INDEX]
         source = torch.tensor([indices], dtype=torch.long, device=self.device)
         lengths = torch.tensor([len(indices)], dtype=torch.long)
-        generated = self.bundle.model.generate(source, lengths, max_length=max_length)[0].tolist()
+        generated = self.bundle.model.generate(
+            source, lengths, max_length=max_length,
+            do_sample=do_sample, temperature=temperature,
+        )[0].tolist()
         generated = [index for index in generated if index not in {PAD_INDEX, SOS_INDEX, EOS_INDEX}]
         output_tokens = self.bundle.target_vocabulary.decode(generated)
         return self.bundle.target_tokenizer.decode(output_tokens)
